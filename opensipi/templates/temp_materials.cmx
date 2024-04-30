@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Cadence_Material_Lib Version="1.02">
+<DataDescriptions>
+	<Material>
+<Column name="Default Thickness" unit="um" />	</Material>
+	<Metal>
+		<Column name="Temperature" unit="C" />
+		<Column name="Conductivity" unit="S/m" />
+	</Metal>
+	<Dielectric>
+		<Column name="Temperature" unit="C" />
+		<Column name="Frequency" unit="MHz" />
+		<Column name="Relative Permittivity" />
+		<Column name="LossTangent" />
+	</Dielectric>
+	<Thermal>
+		<Column name="Temperature" unit="C" />
+		<Column name="Conductivity" unit="W/(m*K)" />
+		<Column name="Density" unit="kg/m^3" />
+		<Column name="Specific heat" unit="J/(kg*K)" />
+	</Thermal>
+	<Magnetic>
+		<Column name="Frequency" unit="MHz" />
+		<Column name="ur(real)" />
+		<Column name="ur(-imag)" />
+	</Magnetic>
+	<SurfaceRoughness>
+	<Huray>
+		<Column name="Surface Ratio" />
+		<Column name="Snowball Radius" unit="um" />
+	</Huray>
+	<ModHammerstad>
+		<Column name="Roughness Factor" />
+		<Column name="RMS value" unit="um" />
+	</ModHammerstad>
+	</SurfaceRoughness>
+	<Structural>
+	<Elasticity>
+		<Column name="Temperature" unit="C" />
+		<Column name="Youngs Modulus" unit="Pa" />
+		<Column name="Poissons Ratio" />
+	</Elasticity>
+	<CTE>
+		<Column name="Reference Temperature" unit="C" />
+		<Column name="Temperature" unit="C" />
+		<Column name="CTE" unit="1/C" />
+	</CTE>
+	</Structural>
+</DataDescriptions>
+MAT_LINES
+</Cadence_Material_Lib>

@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: © 2024 Rivos Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Ignore Python compiled bytecode files
+*.pyc
+# Ignore VSC config directory
+/.vscode
+# Ignore tests directory
+/tests

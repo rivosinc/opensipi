@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2024 Rivos Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[flake8]
+max-line-length = 100
+
+# Ignore all formatting linting as black takes care of it.
+extend-ignore = E1,E203,E501,W
