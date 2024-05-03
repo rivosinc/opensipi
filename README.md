@@ -14,7 +14,7 @@ While OpenSIPI is open-sourced free of charge, the supported back-end simulation
 ## Installation
 
 ## Wiki
-https://gitlab.ba.rivosinc.com/rv/sandbox/yanshengw/opensipi/-/wikis/home
+https://github.com/rivosinc/opensipi/blob/main/docs/Home.md
 
 ## FAQ
 
@@ -31,7 +31,7 @@ Integrate this application in your work flow and come back with issues for fixin
 If you have ideas for releases in the future, it is a good idea to list them in the README.
 
 ## Contributing
-https://gitlab.ba.rivosinc.com/rv/sandbox/yanshengw/opensipi/-/blob/rivos/main/CONTRIBUTING.md
+https://github.com/rivosinc/opensipi/blob/main/CONTRIBUTING.md
 
 State if you are open to contributions and what your requirements are for accepting them.
 
