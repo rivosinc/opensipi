@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 # Contents
-- [Overview of the Application](/Home/Overview-of-the-Application.md)
+- [Overview of the Application](/docs/Home/Overview-of-the-Application.md)
 - [Front-end Files IO](docs/Home/Front-end-Files-IO.md)
 - [Mid-layer Platform](docs/Home/Mid-layer-Platform.md)
 - [Back-end Simulation Solvers](docs/Home/Back-end-Simulation-Solvers.md)
