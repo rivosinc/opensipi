@@ -14,7 +14,8 @@ While OpenSIPI is open-sourced free of charge, the supported back-end simulation
 ## Installation
 
 ## Wiki
-https://github.com/rivosinc/opensipi/blob/main/docs/Home.md
+
+[Wiki](docs/Home.md)
 
 ## FAQ
 
