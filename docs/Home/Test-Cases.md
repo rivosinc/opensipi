@@ -25,27 +25,27 @@ Make sure the .xml option file directories are provided in the "config_sigrity.y
 Choose one of the following sets of files to try out the application for a specific extraction goal.
 - PDN
 
-[Input Sheets](examples/Olympus/Sim_Input/Sigrity_PDN)
+[Input Sheets](/examples/Olympus/Sim_Input/Sigrity_PDN)
 
-[Main Function](examples/Olympus/Script/Olympus_PCB_xtractPDN.py)
+[Main Function](/examples/Olympus/Script/Olympus_PCB_xtractPDN.py)
 
 - LSIO
 
-[Input Sheets](examples/Olympus/Sim_Input/Sigrity_LSIO)
+[Input Sheets](/examples/Olympus/Sim_Input/Sigrity_LSIO)
 
-[Main Function](examples/Olympus/Script/Olympus_PCB_xtractLSIO.py)
+[Main Function](/examples/Olympus/Script/Olympus_PCB_xtractLSIO.py)
 
 - HSIO
 
-[Input Sheets](examples/Olympus/Sim_Input/Sigrity_HSIO)
+[Input Sheets](/examples/Olympus/Sim_Input/Sigrity_HSIO)
 
-[Main Function](examples/Olympus/Script/Olympus_PCB_xtractHSIO.py)
+[Main Function](/examples/Olympus/Script/Olympus_PCB_xtractHSIO.py)
 
 - DCR
 
-[Input Sheets](examples/Olympus/Sim_Input/Sigrity_DCR)
+[Input Sheets](/examples/Olympus/Sim_Input/Sigrity_DCR)
 
-[Main Function](examples/Olympus/Script/Olympus_PCB_xtractDCR.py)
+[Main Function](/examples/Olympus/Script/Olympus_PCB_xtractDCR.py)
 
 # Simulation Configurations
 The folder structure will be created as shown below.
