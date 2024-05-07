@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Folder Structure Explained
 ## Project Level
-![image](docs/Figures/Folder_Structure_Top.png)
+![image](/docs/Figures/Folder_Structure_Top.png)
 
 The following folders are created manually.
 - SIPIProj: The root folder to keep all SIPI simulation files.
@@ -18,7 +18,7 @@ The following folders are created automatically.
 - Xtract: Each run of the simulations and their result files are kept here.
 
 ## Each Run
-![image](docs/Figures/Folder_Structure_Run.png)
+![image](/docs/Figures/Folder_Structure_Run.png)
 
 Each run folder is kept under Xtract. All the folders under Xtract are created automatically.
 
