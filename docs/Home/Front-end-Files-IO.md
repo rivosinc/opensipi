@@ -36,15 +36,15 @@ The best way to explain the allowed formats is through examples.
 
 Let's start with a PDN example. I want to simulate the PDN response of a few power planes in a PCB, i.e. P0V9 and P1V8. Looking at its schematic, PP0V9 starts from the inductor Pin 2 of PL11 and ends at multiple BGA pins (R11, R13, R15 etc.) of U1. I want to set up one port at U1 and one port at the inductor PL11. The right way to implement it is shown in the 2nd row of the table below. I only put a refdes in the "Postive_Main_Ports" and leave "Negative_Main_Ports" blank. This means I will set up a port at U1 with positive pins defined by all U1's pins connected to the "Positive_Nets" and negative pins defined by all U1's pins connected to the "Negative_Nets". I put "PL11, 2" in "Positive_Aux_Ports" and "PC592, 2" in "Negative_Aux_Ports". This means I  will create a port with its positive pins defined by Pin 2 of PL11 and its negative pins defined by Pin 2 of PC592.
 
-![image](docs/Figures/P0V9_VRM.png)
+![image](/docs/Figures/P0V9_VRM.png)
 
-![image](docs/Figures/P1V8_VRM.png)
+![image](/docs/Figures/P1V8_VRM.png)
 
-![image](docs/Figures/SoC_PDN.png)
+![image](/docs/Figures/SoC_PDN.png)
 
 In another case with P1V8 power rail, which starts from Pin 2 of PL8 and ends at multiple pins (N6, T7, N18 etc.) of U1, I want to set up two ports at U1 and one port at PL8. The two ports at U1 are for two groups of pins, i.e. Group 1 containing N6, T7, N18 and Group 2 containing U12, T17, J17, J12, K7. The right way to set it up is shown in the table below from Row 3 to 4. I put "U1, N6, T7, N18" in Row 3 Col "Positive_Main_Ports". Group 1 pins N6, T7 and N18 of the RefDes U1 are set to be the positive pins of Port 1. You can define multiple pins of U1 which are connected to the "Negative_Nets" in "Negative_Main_Ports" in a format as "RefDes, Pin# ...". But if you want to easily set all U1 pins connected to the "Negative_Nets" as the negative pins of Port 1, you can simply put "U1, Lumped" in "Negative_Main_Ports". Port 2 and 3 are easy to understand.
 
-![image](docs/Figures/input_sheet_PDN.png)
+![image](/docs/Figures/input_sheet_PDN.png)
 
 - LSIO
 
@@ -82,7 +82,7 @@ Port9: +(U7, 5) -(U7, 4)
 
 Port10: +(U9, 8) -(U9, 4)
 
-![image](docs/Figures/input_sheet_LSIO.png)
+![image](/docs/Figures/input_sheet_LSIO.png)
 
 - HSIO
 
@@ -99,7 +99,7 @@ Spcie6: default simulation frequency ranges from 1 MHz to 50 GHz with a step siz
 
 The port setup currently only takes RefDes. This assumes the component only has one pin connecting to the enabled nets, which is typically true. But there is a loophole if the assumption doesn't hold. Will look into this in the future.
 
-![image](docs/Figures/input_sheet_HSIO.png)
+![image](/docs/Figures/input_sheet_HSIO.png)
 
 - DCR
 
@@ -117,7 +117,7 @@ A sink is where resistance is measured. The sink can be defined either of the fo
 
 A "VRM" is a virtual concept here. It's the location where power rail is shorted to ground rail so that the resistance can be measured for the whole loop. The "VRM" must be defined as follows. The user has to specify RefDes with its positive and negative pins in "Positive_Aux_Ports" and "Negative_Aux_Ports", respectively.
 
-![image](docs/Figures/input_sheet_DCR.png)
+![image](/docs/Figures/input_sheet_DCR.png)
 
 ### Stackup and Materials
 Only one file called stackup_material is needed. The keywords in this sheet is explained below.
@@ -128,7 +128,7 @@ Only one file called stackup_material is needed. The keywords in this sheet is e
 | Stackup | (Mandatory) Right now the format must follow what is shown below. The format comes from Sigrity tools, which doesn't necessarily work with ANSYS tools. Improvement will be done in the future to make it tool independent. Columns to be revised are typically "Thickness(mm)", "Material", "Fill-in Dielectric", "Roughness Upper", "Roughness Lower", and "Roughness Side". |
 
 An example is shown below.
-![image](docs/Figures/stackup_materials.png)
+![image](/docs/Figures/stackup_materials.png)
 
 ### Special Settings
 Only one file called special_settings is needed. The keywords in this sheet is explained below.
