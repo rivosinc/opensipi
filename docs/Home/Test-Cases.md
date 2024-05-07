@@ -6,11 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 
 # Design Files
 The design files used to demonstrate the application can be obtained from Open Compute Project (OCP). I just randomly picked up one collateral package from [here](https://www.opencompute.org/contributions?refinementList%5Bproject%5D%5B0%5D=Server&refinementList%5Bcontributor%5D%5B0%5D=ZT%20Systems&configure%5BfacetFilters%5D%5B0%5D=archived%3Afalse). Please make sure you download the right files (see pictures below) to work with the provided input sheets. Choose the project based on the Intel chip.
-![image](docs/Figures/OCP_testcase.png)
+![image](/docs/Figures/OCP_testcase.png)
 
 Choose the following layout and schematic files to work with.
 
-![image](docs/Figures/test_layout_sch.png)
+![image](/docs/Figures/test_layout_sch.png)
 
 Since the project is codenamed as Olympus, why not name the simulation project as Olympus then. Later you'll see Olympus is used as the directory name where you keep your simulation files.
 
@@ -50,7 +50,7 @@ Choose one of the following sets of files to try out the application for a speci
 # Simulation Configurations
 The folder structure will be created as shown below.
 
-![image](docs/Figures/Folder_Structure_SimInput.png)
+![image](/docs/Figures/Folder_Structure_SimInput.png)
 
 Let's start with creating a new folder anywhere you like. I'll just put it in the root of C Drive. Rename it to SIPIProj. Actually any folder name will do.
 
@@ -97,7 +97,7 @@ Has the board been put in the directory? [y/n]
 ```
 A Dsn folder has been created under Olympus. Drop the brd file there. Type "y" in the command window and press Enter.
 
-![image](docs/Figures/drop_a_design.png)
+![image](/docs/Figures/drop_a_design.png)
 
 Check the logs, you'll see initial check completes successfully.
 ```
