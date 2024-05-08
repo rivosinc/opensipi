@@ -875,6 +875,13 @@ class ClarityModeler(PowersiIOModeler):
         "sigrity::update workflow -product {Clarity 3D "
         + "Layout} -workflowkey {3DFEMExtraction} {!}\n"
     )
+    TCL_CUTBYNETPOLY = (
+        "sigrity::update net selected 0 {GND} {!}\n"
+        + "sigrity::cut addCuttingPolygon -Auto -IncludeEnabledSignalShapes {1} {!}\n"
+        + "sigrity::delete area -NetToBoundary NETNAMES -PreviewResultFile $sim_spd {!}\n"
+        + "sigrity::update net selected 1 {GND} {!}\n"
+        + "sigrity::process shape {!}\n"
+    )
 
     def __init__(self, info):
         super().__init__(info)
@@ -937,6 +944,13 @@ class ClarityModeler(PowersiIOModeler):
             self.lg.debug(filename + " is created!")
         else:
             self.lg.debug(filename + " already exists. No new key tcl is created!")
+
+    def _cut_shape(self, net):
+        """automatically cut polygon shape for selected nets."""
+        line_tmp = "\n# auto cut\n" + self.TCL_CUTBYNETPOLY
+        net_bracket = ["{"+i+"}" for i in net]
+        line_tmp = line_tmp.replace("NETNAMES", " ".join(net_bracket))
+        return line_tmp
 
     def _set_up_ports(self, info):
         """set up ports and re-order them as specified in the gSheet"""
