@@ -24,13 +24,14 @@ foreach run_key $run_key_array {
 		# assign components from the amm library
 		sigrity::open ammLibrary {AMM_DIR} {!}
 		sigrity::assign -all {!}
+		# sim directory
+		set sim_spd "SIM_DIR"
+		append sim_spd $run_key "__SIM_DATE" ".spd"
 		# enable nets and set up ports for each run_key
 		set run_key_file "RUN_KEY_DIR"
 		append run_key_file "key_" $run_key ".tcl"
 		source $run_key_file
 		# save file to SimFile directory
-		set sim_spd "SIM_DIR"
-		append sim_spd $run_key "__SIM_DATE" ".spd"
 		sigrity::save $sim_spd {!}
 		# real sims: RUN_SIM will be changed to true
 		# model check: RUN_SIM will be changed to false
