@@ -948,7 +948,7 @@ class ClarityModeler(PowersiIOModeler):
     def _cut_shape(self, net):
         """automatically cut polygon shape for selected nets."""
         line_tmp = "\n# auto cut\n" + self.TCL_CUTBYNETPOLY
-        net_bracket = ["{"+i+"}" for i in net]
+        net_bracket = ["{" + i + "}" for i in net]
         line_tmp = line_tmp.replace("NETNAMES", " ".join(net_bracket))
         return line_tmp
 
