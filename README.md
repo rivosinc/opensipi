@@ -3,6 +3,7 @@ SPDX-FileCopyrightText: © 2024 Rivos Inc.
 
 SPDX-License-Identifier: Apache-2.0
 -->
+[![REUSE status](https://api.reuse.software/badge/github.com/rivosinc/opensipi)](https://api.reuse.software/info/github.com/rivosinc/opensipi)
 
 # OpenSIPI
 OpenSIPI is an open-source application used to automate signal integrity (SI) and power integrity (PI) related simulations.
