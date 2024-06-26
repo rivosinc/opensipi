@@ -4,7 +4,7 @@
 
 """
 Author: yanshengw@
-Last updated on Nov. 20, 2023
+Last updated on Jun. 26, 2024
 
 Description:
     This Python3 module contains functions that are commonly used by the
@@ -29,6 +29,15 @@ def get_path_separator():
 
 
 SL = get_path_separator()
+
+
+def get_root_dir():
+    """get the root directory where the tool_config folder is created."""
+    if os.name == "nt":  # Windows OS
+        root = "C:\\"
+    elif os.name == "posix":  # Mac/Linux/BSD
+        root = "~/"
+    return root
 
 
 def get_dir():

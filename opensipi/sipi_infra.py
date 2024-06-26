@@ -35,6 +35,7 @@ from opensipi.util.common import (
     csv2dict,
     export_dict_to_yaml,
     get_dir,
+    get_root_dir,
     get_run_time,
     get_str_before_last_n_symbol,
     load_yaml_to_dict,
@@ -53,8 +54,8 @@ class Platform:
     def __init__(self, info):
         self.INPUT_TYPE = info["input_type"].upper()
         # module internal dir
-        self.ROOT_DIR, self.SCRIPTS_DIR, self.TEMPLATE_DIR = get_dir()
-        self.TOOL_CONFIG_DIR = self.ROOT_DIR + "opensipi_config" + SL
+        self.INSTALL_ROOT_DIR, self.SCRIPTS_DIR, self.TEMPLATE_DIR = get_dir()
+        self.TOOL_CONFIG_DIR = get_root_dir() + "opensipi_config" + SL
         make_dir(self.TOOL_CONFIG_DIR)
         # get run name through run time
         if "op_run_name" not in info:
