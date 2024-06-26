@@ -13,6 +13,10 @@ OpenSIPI serves as a platform to read and parse input info that is needed to set
 While OpenSIPI is open-sourced free of charge, the supported back-end simulation solvers are still commercialized tools. The successful extraction of the desired results are subject to the availability of proper commerical licenses.
 
 ## Installation
+Open a terminal or command window. Install the tool using the following command.
+```
+pip3 install git+https://github.com/rivosinc/opensipi
+```
 
 ## Wiki
 
