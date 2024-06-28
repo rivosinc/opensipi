@@ -70,3 +70,52 @@ proc turn_off_dns_ckt {refdes_en bom} {
         }
     }
 }
+
+
+# split the component if it's double sided
+proc split_component { refdes } {
+	set refdes_list $refdes
+	set comp_details [sigrity::querydetails ckt -name $refdes]
+	set model_name [lindex $comp_details 1]
+	set layer1 [lindex $comp_details 6]
+	set layer2 [lindex $comp_details 7]
+	set node_details [sigrity::querydetails node -refcircuit $refdes]
+	if { $layer2 != ""} {
+		set node_grp1 {}
+		set node_grp2 {}
+		# separate node groups
+		foreach node $node_details {
+			set node_name [lindex $node 0]
+			set node_layer [lindex [sigrity::querydetails node -name $node] 3]
+			set node_pin [lindex [wsplit [lindex [wsplit $node_name "!!"] 1] "::"] 0]
+			if { $node_layer == $layer1 } {
+				lappend node_grp1 "$node_pin $node_name"
+			} else {
+				lappend node_grp2 "$node_pin $node_name"
+			}
+		}
+		# create ckt componets
+		set refdes1 "${refdes}_Layer_$layer1"
+		create_new_ckt $refdes1 $model_name $node_grp1
+		set refdes2 "${refdes}_Layer_$layer2"
+		create_new_ckt $refdes2 $model_name $node_grp2
+		set refdes_list "$refdes1 $refdes2"
+	}
+	return $refdes_list
+}
+
+
+# create ckt component
+proc create_new_ckt {refdes model_name node_grp} {
+	sigrity::add circuit $refdes -def $model_name {!}
+	sigrity::select $refdes {!}
+	foreach node $node_grp {
+		sigrity::link $refdes [lindex $node 0] [lindex $node 1] {!}
+	}
+}
+
+
+# split a string by a substring
+proc wsplit {rawstr substr} {
+  split [string map [list $substr \0] $rawstr] \0
+}
