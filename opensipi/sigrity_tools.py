@@ -842,8 +842,14 @@ class ClarityModeler(PowersiIOModeler):
     Only component ports are supported for both primary and sense ports.
     """
 
+    TCL_PORT_FEM_LISTS = (
+        "set refdes_list [split_component SINGLE_REFDES]\n"
+        + "foreach refdes $refdes_list {\n"
+        + "    TCL_PORT_FEM"
+        + "}\n"
+    )
     TCL_PORT_FEM = (
-        "sigrity::add 3DFEMPort -circuit {REFDES} "
+        "sigrity::add 3DFEMPort -circuit $refdes "
         + "-PortType {coaxial} -AddSolderBallBump {1} "
         + "-GeneratePortsForEnabledNets {1} -AntipadSize {ASR} "
         + "-LumpPortHeight {0.0003} "
@@ -852,7 +858,7 @@ class ClarityModeler(PowersiIOModeler):
         + "-RefLayerThickness {0.000002} {!}\n"
     )
     TCL_PORT_FEM_SCALEPAD = (
-        "sigrity::add 3DFEMPort -circuit {REFDES} "
+        "sigrity::add 3DFEMPort -circuit $refdes "
         + "-PortType {coaxial} -AddSolderBallBump {1} "
         + "-GeneratePortsForEnabledNets {1} -AntipadSize {ASR} "
         + "-UsePadSizeAsDiameter {RATIO} -LumpPortHeight {0.0003} "
@@ -876,10 +882,10 @@ class ClarityModeler(PowersiIOModeler):
         + "Layout} -workflowkey {3DFEMExtraction} {!}\n"
     )
     TCL_CUTBYNETPOLY = (
-        "sigrity::update net selected 0 {GND} {!}\n"
+        "sigrity::update net selected 0 {GNDNETS} {!}\n"
         + "sigrity::cut addCuttingPolygon -Auto -IncludeEnabledSignalShapes {1} {!}\n"
         + "sigrity::delete area -NetToBoundary NETNAMES -PreviewResultFile $sim_spd {!}\n"
-        + "sigrity::update net selected 1 {GND} {!}\n"
+        + "sigrity::update net selected 1 {GNDNETS} {!}\n"
         + "sigrity::process shape {!}\n"
     )
 
@@ -925,7 +931,7 @@ class ClarityModeler(PowersiIOModeler):
             ctnt.append(self._en_nets(net_pos, "NULL"))  # signal net group
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
             # autocut
-            ctnt.append(self._cut_shape(net_pos))
+            ctnt.append(self._cut_shape(net_pos, net_neg))
             # multi-terminal circuits at bottom
             ctnt.append(self.__add_multiterm_ckt(self.BOT_LAYER_INDEX, "Down"))
             # multi-terminal circuits at top
@@ -945,11 +951,12 @@ class ClarityModeler(PowersiIOModeler):
         else:
             self.lg.debug(filename + " already exists. No new key tcl is created!")
 
-    def _cut_shape(self, net):
+    def _cut_shape(self, net_pos, net_neg):
         """automatically cut polygon shape for selected nets."""
         line_tmp = "\n# auto cut\n" + self.TCL_CUTBYNETPOLY
-        net_bracket = ["{" + i + "}" for i in net]
+        net_bracket = ["{" + i + "}" for i in net_pos]
         line_tmp = line_tmp.replace("NETNAMES", " ".join(net_bracket))
+        line_tmp = line_tmp.replace("GNDNETS", " ".join(net_neg))
         return line_tmp
 
     def _set_up_ports(self, info):
@@ -986,10 +993,13 @@ class ClarityModeler(PowersiIOModeler):
             RATIO = str(self.DF_SOLDER[1])
             lines = self.TCL_PORT_FEM_SCALEPAD
             lines = lines.replace("RATIO", RATIO)
-        lines = lines.replace("REFDES", comp)
         lines = lines.replace("SBH", SBH)
         lines = lines.replace("ASR", str(self.DF_ANTIPAD))
-        return lines
+        # netlist lines
+        tcl_lines = self.TCL_PORT_FEM_LISTS
+        tcl_lines = tcl_lines.replace("TCL_PORT_FEM", lines)
+        tcl_lines = tcl_lines.replace("SINGLE_REFDES", comp)
+        return tcl_lines
 
     def __reorder_ports(self, info):
         """rename and reorder ports"""
