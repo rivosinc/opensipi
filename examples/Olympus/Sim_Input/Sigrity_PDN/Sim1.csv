@@ -1,4 +1,0 @@
-Unique_Key,Check_Box,Spec_Type,Positive_Nets,Negative_Nets,Positive_Main_Ports,Negative_Main_Ports,Positive_Aux_Ports,Negative_Aux_Ports
-P0V9,TRUE,Zpdn,P0V9,GND,U1,,"PL11, 2","PC592, 2"
-P1V8,TRUE,Zpdn,P1V8,GND,"U1, N6, T7, N18","U1, Lumped","PL8, 2","PC551, 2"
-,,,,,"U1, U12, T17, J17, J12, K7","U1, Lumped",,
