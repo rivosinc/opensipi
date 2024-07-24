@@ -15,17 +15,23 @@ pip3 install git+https://github.com/rivosinc/opensipi
 
 Root directory: "C:/" for windows
 
-Create a new directory "opensipi_config" under the root directory if not existing. The direcotyr name must be exact.
+Create a new directory "opensipi_config" under the root directory if not existing. The directory name must be exact.
 
-## Mandatory Files
-Create a "config_sigrity.yaml" in the directory "opensipi_config". This YAML file contains information to configure the simulation software settings. The mandatory key words are explained as below.
+## Files must be under Folder "opensipi_config"
+The following files MUST exist in "opensipi_config"
+- config_sigrity.yaml: parameters to configure Cadence Sigrity tools.
+- config_linux.yaml: parameters related to Linux OS.
+- usr.yaml: parameters related to users
+
+### config_sigrity.yaml
+The mandatory key words are explained as below.
 
 | Key Word | Value | Description |
 | -------- | ----- | ----------- |
-| SIG_LIB | string | The directory of a Sigrity component library file. |
-| SIG_OPTION | string | The directory of a PowerSI option file. |
-| CLARITY_OPTION | string | The directory of a Clarity option file. |
-| PDC_OPTION | string | The directory of a PowerDC option file. |
+| SIG_LIB | string | The directory of a Sigrity component library file *.amm. |
+| SIG_OPTION | string | The directory of a PowerSI option file *.xml. |
+| CLARITY_OPTION | string | The directory of a Clarity option file *.xml. |
+| PDC_OPTION | string | The directory of a PowerDC option file *.xml. |
 | CORE_NUM | int | The number of CPU cores used for a simulation. |
 | DEFAULT_SOLDER | list of float | First number is solder height in mm. Second number is solder diameter to pad size ratio. |
 | DEFAULT_ANTIPAD | float | One number for FEM port antipad ratio. |
@@ -70,6 +76,35 @@ KNOB_BACKGND_RUN: 0
 KNOB_EMAIL: 0
 ```
 
-In the folder "opensipi_config", create a new folder "AMMLib" to store the Sigrity AMM component library files. This amm file can be exported from Sigrity tools.
+### config_linux.yaml
+The mandatory key words are explained as below.
 
-Next in the folder "opensipi_config", create a new folder "SigOptions" to store the Sigrity setting option XML files. These option files can be configured and exported from Sigrity tools.
+| Key Word | Value | Description |
+| -------- | ----- | ----------- |
+| CMD_HEADER | string | Allow users to customize scheduler info. |
+
+```yaml
+# CMD_HEADER, allow users to customize scheduler info
+CMD_HEADER: ''
+```
+
+### usr.yaml
+The mandatory key words are explained as below.
+
+| Key Word | Value | Description |
+| -------- | ----- | ----------- |
+| USR_ID | string | User ID. |
+
+```yaml
+# User ID
+USR_ID: user_id
+```
+
+## Files can reside any locations
+The following files are must-haves but can reside outside Folder "opensipi_config"
+- Cadence component library: *.amm
+
+    Set the full path to this amm file to SIG_LIB in config_sigrity.yaml
+- Option Files for Cadence Clarity, PowerSI, and PowerDC: *.xml
+
+    Set the full paths to these xml files to SIG_OPTION, CLARITY_OPTION, and PDC_OPTION in config_sigrity.yaml
