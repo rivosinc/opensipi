@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: opensipi
 Upstream-Contact: Yansheng Wang <yanshengw@rivosinc.com>
-Source: https://gitlab.ba.rivosinc.com/rv/sandbox/yanshengw/opensipi
+Source: https://github.com/rivosinc/opensipi
 
 Files: examples/Olympus/Sim_Input/*
 Copyright: 2024 Rivos Inc.
