@@ -4,16 +4,20 @@ SPDX-FileCopyrightText: 2024 Rivos Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Installation
-Let's install the package in "C:/". This directory is our root directory.
+# Installation and update
+Open a terminal or command window. Install or update the tool using the following command.
+
+```
+pip3 install git+https://github.com/rivosinc/opensipi
+```
 
 # Configuration
-Create a new directory "opensipi_config" under our root directory if not existing.
 
-In the folder "opensipi_config", create a new folder "AMMLib" to store the Sigrity AMM component library files. This amm file can be exported from Sigrity tools.
+Root directory: "C:/" for windows
 
-Next in the folder "opensipi_config", create a new folder "SigOptions" to store the Sigrity setting option XML files. These option files can be configured and exported from Sigrity tools.
+Create a new directory "opensipi_config" under the root directory if not existing. The direcotyr name must be exact.
 
+## Mandatory Files
 Create a "config_sigrity.yaml" in the directory "opensipi_config". This YAML file contains information to configure the simulation software settings. The mandatory key words are explained as below.
 
 | Key Word | Value | Description |
@@ -65,3 +69,7 @@ SIG_LIC:
 KNOB_BACKGND_RUN: 0
 KNOB_EMAIL: 0
 ```
+
+In the folder "opensipi_config", create a new folder "AMMLib" to store the Sigrity AMM component library files. This amm file can be exported from Sigrity tools.
+
+Next in the folder "opensipi_config", create a new folder "SigOptions" to store the Sigrity setting option XML files. These option files can be configured and exported from Sigrity tools.
