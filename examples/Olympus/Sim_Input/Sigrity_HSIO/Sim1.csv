@@ -1,3 +1,0 @@
-Unique_Key,Check_Box,Spec_Type,Positive_Nets,Negative_Nets,Positive_Main_Ports,Negative_Main_Ports,Positive_Aux_Ports,Negative_Aux_Ports
-PE_CPU_RX_L0,TRUE,Spcie6,"PE_CPU_RX_DP<0>, PE_CPU_RX_C_DP<0>",GND,U1,,J5,
-,,,"PE_CPU_RX_DN<0>, PE_CPU_RX_C_DN<0>",GND,U1,,J5,

@@ -1,3 +1,0 @@
-Unique_Key,Check_Box,Spec_Type,Positive_Nets,Negative_Nets,Positive_Main_Ports,Negative_Main_Ports,Positive_Aux_Ports,Negative_Aux_Ports
-P0V9,TRUE,Rm2l,P0V9,GND,U1,,"PL11, 2","PC592, 2"
-P1V8,TRUE,Rl2l,P1V8,GND,"U1, N6, T7","U1, N8, T9","PL8, 2","PC551, 2"
