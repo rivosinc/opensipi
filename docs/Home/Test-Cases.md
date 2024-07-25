@@ -4,68 +4,90 @@ SPDX-FileCopyrightText: 2024 Rivos Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Design Files
-The design files used to demonstrate the application can be obtained from Open Compute Project (OCP). I just randomly picked up one collateral package from [here](https://www.opencompute.org/contributions?refinementList%5Bproject%5D%5B0%5D=Server&refinementList%5Bcontributor%5D%5B0%5D=ZT%20Systems&configure%5BfacetFilters%5D%5B0%5D=archived%3Afalse). Please make sure you download the right files (see pictures below) to work with the provided input sheets. Choose the project based on the Intel chip.
+# Overview
+Here is the flow to evaluate the OpenSIPI platform with the provided examples.
+- Download the specified design files
+- Install OpenSIPI
+- Download and revise the example configuration files and place the whole folder in the root directory
+- Create a folder "SIPIProj" in the root directory
+- Download the example Olympus input files and place them in the folder "SIPIProj"
+- Run the main function
+
+The above-mentioned root directory refers to "C:/" in Windows OS.
+
+## Download the design files
+The design files used to demonstrate the application are obtained from [Open Compute Project](https://www.opencompute.org) (OCP). In the [OCP Contributions](https://www.opencompute.org/contributions) webpage, search for "Intel Olympus ZTSystems" and download the board design package to work with the provided input info.
 ![image](/docs/Figures/OCP_testcase.png)
 
-Choose the following layout and schematic files to work with.
+Unzip the downloaded design package. Choose the following layout and schematic files to work on.
 
 ![image](/docs/Figures/test_layout_sch.png)
 
 Since the project is codenamed as Olympus, why not name the simulation project as Olympus then. Later you'll see Olympus is used as the directory name where you keep your simulation files.
 
-# Component Library
-In Cadence Sigrity tools, a component will be automatically included for simulations if all the nets connected to the component's pins are enabled. It's the users' responsibility to assign the right models for each component included for simulations. The component model assignment is stored in the .amm file. Please make sure the .amm file directory is provided in the "config_sigrity.yaml" file.
+## Install OpenSIPI
+Open a terminal or command window. Install or update the tool using the following command.
 
-# Solver Setting Options
+```
+pip3 install git+https://github.com/rivosinc/opensipi
+```
 
-Make sure the .xml option file directories are provided in the "config_sigrity.yaml" file.
+## Download and revise the exmaple configuration files
+After downloading the example configuraiton files in [a zipped package](/examples/opensipi_config.zip), unzip it and place the whole folder "opensipi_config" in the root directory.
 
-# Input Files
-Choose one of the following sets of files to try out the application for a specific extraction goal.
+Detailed descriptions of the configuration files can be found [here](/docs/Home/Installation-and-Configuration.md). For this specific test case, the following parameters in the "config_sigrity.yaml" file have to be revised based on your available tool version and licenses.
+- SIG_VER
+
+    e.g. Sigrity2024.0
+- SIG_LIC
+
+    One way to obtain the available license names is to check in the utility tool "Cadence Sigrity Suite Manager". One example is given here to demo the process. Assume that Clarity3dlayout licenses are to be queried. As shown below, launch the utility and select Clarity3DLayout. On the right side, there are three suite licenses available for 24.0 version, i.e. Clarity 3D, Clarity IC Package Extraction Suite, and Clarity PCB Extraction Suite. But these are not the exact license names used to launch the tool. Select Clarity IC Package Extraction Suite and click the below button "Who is using". In the pop-up dialog, "ICP_Extract_20" is the exact license name for Clarity IC Package Extraction Suite. Repeat the flow for the other two available licenses to get their exact names.
+
+![image](/docs/Figures/LicMng.png)
+
+Notice: The example AMM library file and Cadence Sigrity option files are provided as a starting point for users. They are supposed to be revised based on needs.
+
+## Create Folder "SIPIProj"
+In the root directory, create a new directory "SIPIProj" if not exist.
+
+## Download the input Files
+After downloading the example Olympus input files in [a zipped package](/examples/Olympus.zip), unzip it and place the whole folder "Olympus" under Folder "SIPIProj".
+
+Inside Folder "Olympus", main functions are stored under Folder "Script" and input files are stored under Folder "Sim_Input". Choose one set of files to try out the OpenSIPI platform for a specific extraction goal.
+
+The folder structure will be created as shown below.
+
+![image](/docs/Figures/Folder_Structure_SimInput.png)
+
+The online version of the input files and main funcitons are listed below.
 - PDN
 
-[Input Sheets](/examples/Olympus/Sim_Input/Sigrity_PDN)
+[Input Files](/examples/Olympus/Sim_Input/Sigrity_PDN)
 
 [Main Function](/examples/Olympus/Script/Olympus_PCB_xtractPDN.py)
 
 - LSIO
 
-[Input Sheets](/examples/Olympus/Sim_Input/Sigrity_LSIO)
+[Input Files](/examples/Olympus/Sim_Input/Sigrity_LSIO)
 
 [Main Function](/examples/Olympus/Script/Olympus_PCB_xtractLSIO.py)
 
 - HSIO
 
-[Input Sheets](/examples/Olympus/Sim_Input/Sigrity_HSIO)
+[Input Files](/examples/Olympus/Sim_Input/Sigrity_HSIO)
 
 [Main Function](/examples/Olympus/Script/Olympus_PCB_xtractHSIO.py)
 
 - DCR
 
-[Input Sheets](/examples/Olympus/Sim_Input/Sigrity_DCR)
+[Input Files](/examples/Olympus/Sim_Input/Sigrity_DCR)
 
 [Main Function](/examples/Olympus/Script/Olympus_PCB_xtractDCR.py)
 
-# Simulation Configurations
-The folder structure will be created as shown below.
+## Run the Main Function
+Use the PDN extraction test case as an example here.
 
-![image](/docs/Figures/Folder_Structure_SimInput.png)
-
-Let's start with creating a new folder anywhere you like. I'll just put it in the root of C Drive. Rename it to SIPIProj. Actually any folder name will do.
-
-Create a new folder under SIPIProj. This will be your project folder. Name the folder with a project name, e.g. Olympus in this test case. The folder name is not critical to use the codes. It simply helps differentiate the projects you are working on.
-
-Create a folder under Olympus and rename it to Script to store the simulation launching python script. Copy Olympus_PCB_xtractPDN.py to the above-mentioned folder Script.
-
-Under the project folder, i.e. Olympus, create a new folder to store the simulation input information. Give the new folder a meaningful name, e.g. Sim_Input.
-
-Under the folder Sim_Input, create a new folder to store the set of simulation input information. In this test case, a folder named Sigrity_PDN is created.
-
-Put the csv files containing the simulation input to the folder Sigrity_PDN.
-
-# Run the Application
-Before running Olympus_PCB_xtractPDN.py, make sure your input information is correct. The contents of Olympus_PCB_xtractPDN.py is shown below. Make sure config_dir, input_type, input_folder all specified correctly.
+Find the main function python file under "/Olympus/Script/Olympus_PCB_xtractPDN.py". Before running Olympus_PCB_xtractPDN.py, make sure your input information is correct. The contents of Olympus_PCB_xtractPDN.py is shown below. Make sure config_dir, input_type, input_folder all specified correctly.
 ```python
 from opensipi.integrated_flows import sim2report
 
@@ -85,7 +107,10 @@ mntr_info = {
 sim2report(input_info, mntr_info)
 ```
 
-Open a command window in the folder Script and launch Olympus_PCB_xtractPDN.py.
+Open a command window in the folder "Script" and launch Olympus_PCB_xtractPDN.py.
+```
+python Olympus_PCB_xtractPDN.py
+```
 
 You'll be asked to drop a design file to the specified directory.
 ```
