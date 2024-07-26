@@ -1,0 +1,13 @@
+CONNECTIVITY:
+  SIM1_P0V9:
+    ZIN: [1]
+  SIM1_P1V8:
+    ZIN: [1, 2]
+checked_keys: [SIM1_P0V9, SIM1_P1V8]
+plot_dir: C:\SIPIProj\Olympus\Xtract\Run_20240725_143525\Report\Plot\
+result_sub_dirs:
+  {
+    snp_dcfitted_dir: 'C:\SIPIProj\Olympus\Xtract\Run_20240725_143525\Result\SNP_DCfitted\',
+    snp_s_dir: 'C:\SIPIProj\Olympus\Xtract\Run_20240725_143525\Result\SNP_S\',
+  }
+spectype: { SIM1_P0V9: Zpdn, SIM1_P1V8: Zpdn }

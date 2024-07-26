@@ -1,0 +1,13 @@
+{
+  design_type: PCB,
+  dsn_name: 2-SLOT_48LANE_RISER.brd,
+  proj_name: Olympus,
+  report_dir: 'C:\SIPIProj\Olympus\Xtract\Run_20240725_143525\Report\',
+  report_full_path: 'C:\SIPIProj\Olympus\Xtract\Run_20240725_143525\Report\report_20240725_143525.pdf',
+  report_type: PDN,
+  result_dir: 'C:\SIPIProj\Olympus\Xtract\Run_20240725_143525\Result\',
+  sim_date: "20240725_143525",
+  usr_id: user_id,
+  xtract_tool: Sigrity,
+  xtract_type: PDN,
+}
