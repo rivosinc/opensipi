@@ -18,8 +18,11 @@ Open a terminal or command window. Install or update the tool using the followin
 pip3 install git+https://github.com/rivosinc/opensipi
 ```
 
-## Wiki
+## Starter Kit
+- [Windows Users](docs/Home/Starter-Kit-for-Windows-Users.md)
+- Linux Users (WIP)
 
+## Wiki
 [Wiki](docs/Home.md)
 
 ## FAQ
@@ -29,10 +32,14 @@ pip3 install git+https://github.com/rivosinc/opensipi
 ## Support
 You can show your support to this project by becoming a
 - contributor:
-Contribute to codings and help resolve open issues.
-Contribute to documentation and test cases.
+
+  Contribute to codings and help resolve open issues.
+
+  Contribute to documentation and test cases.
+
 - user:
-Integrate this platform in your work flow, report bugs and provide feedback for feature improvement.
+
+  Integrate this platform in your work flow, report bugs and provide feedback for feature improvement.
 
 ## Roadmap
 
@@ -45,6 +52,7 @@ Call for contribution to the following areas:
 - Beautify reports.
 
 A documentation to get contributors started WILL be added to the following file.
+
 [Contributing](CONTRIBUTING.md)
 
 ## Authors and acknowledgment
