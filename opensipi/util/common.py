@@ -15,6 +15,7 @@ OpenSIPI application.
 import csv
 import os
 from datetime import datetime
+from os.path import expanduser
 
 from ruamel.yaml import YAML
 
@@ -36,7 +37,7 @@ def get_root_dir():
     if os.name == "nt":  # Windows OS
         root = "C:\\"
     elif os.name == "posix":  # Mac/Linux/BSD
-        root = "~/"
+        root = os.getenv("HOME") + SL
     return root
 
 
@@ -292,6 +293,13 @@ def load_yaml_to_dict(dir):
     with open(dir) as yamlfile:
         out_dict = yaml.load(yamlfile)
     return out_dict
+
+
+def expand_home_dir(in_dir):
+    """expand ~ as the home dir."""
+    home = expanduser("~")
+    out_dir = in_dir.replace("~", home)
+    return out_dir
 
 
 class Vividict(dict):

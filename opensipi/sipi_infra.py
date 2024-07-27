@@ -33,6 +33,7 @@ from opensipi.touchstone import TouchStone
 from opensipi.util.common import (
     SL,
     csv2dict,
+    expand_home_dir,
     export_dict_to_yaml,
     get_dir,
     get_root_dir,
@@ -99,7 +100,7 @@ class Platform:
         if "proj_dir" in info:
             proj_dir = info["proj_dir"]
         elif "config_dir" in info:
-            config_dir = slash_ending(rectify_dir(info["config_dir"]))
+            config_dir = expand_home_dir(slash_ending(rectify_dir(info["config_dir"])))
             proj_dir = get_str_before_last_n_symbol(config_dir, SL, 2) + SL
         else:
             raise NoProjDirDefined()
@@ -109,7 +110,7 @@ class Platform:
     def _get_filein_info(self, info):
         """get the dict used to query input data."""
         if self.INPUT_TYPE == "CSV":
-            config_dir = slash_ending(rectify_dir(info["config_dir"]))
+            config_dir = expand_home_dir(slash_ending(rectify_dir(info["config_dir"])))
             input_dir = config_dir + info["input_folder"] + SL
             input_info = {
                 "input_type": self.INPUT_TYPE,
@@ -288,7 +289,7 @@ class Platform:
 
     def process_snp(self, result_config_dir):
         """Post-process results and generate plots."""
-        result_config = load_yaml_to_dict(result_config_dir)
+        result_config = load_yaml_to_dict(expand_home_dir(result_config_dir))
         result_dict = {}
         for key in result_config["result_sub_dirs"].keys():
             result_dict[key] = self.__snp_plot_xtract(key, result_config)
@@ -297,14 +298,14 @@ class Platform:
     def report(self, result_config_dir, report_config_dir):
         """Generate a report out of the processed results."""
         # load report config file
-        report_config = load_yaml_to_dict(report_config_dir)
+        report_config = load_yaml_to_dict(expand_home_dir(report_config_dir))
         # pdf template selection based on report type
         report_type = report_config["report_type"]
 
         # snp figures
         output_list = []
         if report_type in ["PDN", "IO"]:
-            result_dict = self.process_snp(result_config_dir)
+            result_dict = self.process_snp(expand_home_dir(result_config_dir))
             for key, val in result_dict.items():
                 output_list.extend(val)
         elif report_type in ["DCR"]:
@@ -320,7 +321,7 @@ class Platform:
             ["Design File", report_config["dsn_name"]],
         ]
 
-        dir = report_config["report_full_path"]
+        dir = expand_home_dir(report_config["report_full_path"])
         if report_type == "PDN":
             self.__gen_pdn_report(pdn_report, summary_list, output_list, dir)
         elif report_type == "IO":
@@ -340,9 +341,9 @@ class Platform:
         upload_config["run_time"] = report_config["sim_date"]
         upload_config["usr_id"] = report_config["usr_id"]
         upload_config["design_type"] = report_config["design_type"]
-        upload_config["report_full_path"] = report_config["report_full_path"]
-        upload_config["report_dir"] = report_config["report_dir"]
-        upload_config["result_dir"] = report_config["result_dir"]
+        upload_config["report_full_path"] = expand_home_dir(report_config["report_full_path"])
+        upload_config["report_dir"] = expand_home_dir(report_config["report_dir"])
+        upload_config["result_dir"] = expand_home_dir(report_config["result_dir"])
         upload_config["tool_config_dir"] = self.TOOL_CONFIG_DIR
         upload_config_dir = self.REPORT_DIR + "upload_config.yaml"
         export_dict_to_yaml(upload_config, upload_config_dir)
@@ -449,8 +450,8 @@ class Platform:
     def _get_plt_list(self, key, result_config):
         """Get the plot list out of a given directory."""
         plt_list = []
-        snp_dir = result_config["result_sub_dirs"][key]
-        plot_dir = result_config["plot_dir"]
+        snp_dir = expand_home_dir(result_config["result_sub_dirs"][key])
+        plot_dir = expand_home_dir(result_config["plot_dir"])
         checked_keys = result_config["checked_keys"]
         spectype = result_config["spectype"]
         conn = result_config["CONNECTIVITY"]

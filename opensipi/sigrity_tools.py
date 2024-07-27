@@ -16,6 +16,7 @@ import os
 from opensipi.constants.CONSTANTS import FREQ_RANGE, SIM_INPUT_COL_TITLE
 from opensipi.util.common import (
     SL,
+    expand_home_dir,
     get_cols_out_of_list_of_list,
     get_run_time,
     list_strip,
@@ -86,7 +87,7 @@ class SpdModeler:
         # define constants
         self.sig_config_dict = load_yaml_to_dict(self.tool_config_dir + "config_sigrity.yaml")
         self.sig_lic = self.sig_config_dict["SIG_LIC"]
-        self.sig_lib = self.sig_config_dict["SIG_LIB"]
+        self.sig_lib = expand_home_dir(self.sig_config_dict["SIG_LIB"])
         self.SOLVER = "powersi"
         self.UNIKEY = SIM_INPUT_COL_TITLE[0]
         self.CKBOX = SIM_INPUT_COL_TITLE[1]
@@ -220,7 +221,9 @@ class SpdModeler:
             temp_tcl = temp_tcl.replace("CREATESRM", self.__create_surface_roughness_model_tcl())
             temp_tcl = temp_tcl.replace("MAT_DIR", self.loc_dsn_dir + self.MAT_CMX)
             temp_tcl = temp_tcl.replace("STACKUP_DIR", self.loc_dsn_dir + self.STACKUP_CSV)
-            temp_tcl = temp_tcl.replace("OPTION_DIR", self.sig_config_dict["SIG_OPTION"])
+            temp_tcl = temp_tcl.replace(
+                "OPTION_DIR", expand_home_dir(self.sig_config_dict["SIG_OPTION"])
+            )
             temp_tcl = temp_tcl.replace("NETINFO", (self.netinfo_dir).replace(SL, "/"))
             temp_tcl = temp_tcl.replace("COMPINFO", (self.compinfo_dir).replace(SL, "/"))
             temp_tcl = temp_tcl.replace("SPD_DIR", self.parent_spd_dir)
@@ -892,7 +895,7 @@ class ClarityModeler(PowersiIOModeler):
     def __init__(self, info):
         super().__init__(info)
         # define constants
-        self.CLARITY_OPTION = self.sig_config_dict["CLARITY_OPTION"]
+        self.CLARITY_OPTION = expand_home_dir(self.sig_config_dict["CLARITY_OPTION"])
         self.CORE_NUM = self.sig_config_dict["CORE_NUM"]
         # solder height in mm, diameter to pad size ratio
         self.DF_SOLDER = self.sig_config_dict["DEFAULT_SOLDER"]
@@ -1111,7 +1114,7 @@ class PowerdcModeler(PowersiPdnModeler):
     def __init__(self, info):
         super().__init__(info)
         # define variables
-        self.PDC_OPTION = self.sig_config_dict["PDC_OPTION"]
+        self.PDC_OPTION = expand_home_dir(self.sig_config_dict["PDC_OPTION"])
         self.dcr_dict = info["dcr_dict"]
         self.SOLVER = "powerdc"
 

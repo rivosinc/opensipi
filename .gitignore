@@ -8,3 +8,5 @@
 /.vscode
 # Ignore tests directory
 /tests
+# Ignore .DS_Store
+*.DS_Store
