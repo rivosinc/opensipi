@@ -30,7 +30,7 @@ pip3 install git+https://github.com/rivosinc/opensipi
 ## Email list
 
 ## Support
-You can show your support to this project by becoming a
+You can show your support for this project by becoming a
 - contributor:
 
   Contribute to codings and help resolve open issues.
@@ -39,7 +39,7 @@ You can show your support to this project by becoming a
 
 - user:
 
-  Integrate this platform in your work flow, report bugs and provide feedback for feature improvement.
+  Integrate this platform in your workflow, report bugs and provide feedback for feature improvement.
 
 ## Roadmap
 
@@ -51,9 +51,7 @@ Call for contribution to the following areas:
 - Include more options for S-parameter post-processing.
 - Beautify reports.
 
-A documentation to get contributors started WILL be added to the following file.
-
-[Contributing](CONTRIBUTING.md)
+Please look at this [doc](CONTRIBUTING.md) to get started.
 
 ## Authors and acknowledgment
 
@@ -62,4 +60,4 @@ A documentation to get contributors started WILL be added to the following file.
 Before using this application for any purpose, you MUST read and understand the terms put forward in the accompanying "LICENSE" file.
 
 ## Project status
-The project is at its early stage and is under-development actively.
+The project is at its early stage and is actively under development.
