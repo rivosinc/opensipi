@@ -37,7 +37,11 @@ poetry shell
 
 Now click the default interpreter at bottom right corner of VSC as shown below.
 
+![image](/docs/Figures/VSC_BR.png)
+
 A dialog pops up in the top center of VSC and prompt you to select from the avaialble interpreters. Choose the one containing "opensipi" in the name.
+
+![image](/docs/Figures/VSC_top.png)
 
 You're all set to make changes!
 
