@@ -11,4 +11,5 @@ SPDX-License-Identifier: Apache-2.0
 - [Back-end Simulation Solvers](/docs/Home/Back-end-Simulation-Solvers.md)
 - [Installation and Configuration](/docs/Home/Installation-and-Configuration.md)
 - [Starter Kit (Windows)](/docs/Home/Starter-Kit-for-Windows-Users.md)
-- [Developer Manual](/docs/Home/Developer-Manual.md)
+- [Starter Kit (Linux)](/docs/Home/Starter-Kit-for-Linux-Users.md)
+- [User Manual](/docs/Home/User-Manual.md)
