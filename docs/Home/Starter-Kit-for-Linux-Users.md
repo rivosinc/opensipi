@@ -8,8 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 Here is the flow to evaluate the OpenSIPI platform with the provided examples.
 - Download the specified design files
 - Install OpenSIPI
-- Download and revise the example configuration files and place the whole folder in the root directory, i.e. "C:/" directory.
-- Create a folder "SIPIProj" in the root directory
+- Download and revise the example configuration files and place the whole folder in the HOME directory.
+- Create a folder "SIPIProj" in any working directory
 - Download the example Olympus input files and place them in the folder "SIPIProj"
 - Run the main function
 
@@ -31,7 +31,7 @@ pip3 install git+https://github.com/rivosinc/opensipi
 ```
 
 ## Download and revise the exmaple configuration files
-After downloading the example configuraiton files in [a zipped package](/examples/WinOS/opensipi_config.zip), unzip it and place the whole folder "opensipi_config" in the root directory.
+After downloading the example configuraiton files in [a zipped package](/examples/Linux/opensipi_config.zip), unzip it and place the whole folder "opensipi_config" in the HOME directory.
 
 Detailed descriptions of the configuration files can be found [here](/docs/Home/Installation-and-Configuration.md). For this specific test case, the following parameters in the "config_sigrity.yaml" file have to be revised based on your available tool version and licenses.
 - SIG_VER
@@ -46,14 +46,14 @@ Detailed descriptions of the configuration files can be found [here](/docs/Home/
 Notice: The example AMM library file and Cadence Sigrity option files are provided as a starting point for users. They are supposed to be revised based on needs.
 
 ## Create Folder "SIPIProj"
-In the root directory, create a new directory "SIPIProj" if not exist.
+In any working directory, create a new directory "SIPIProj" if not exist.
 
 ## Download the input Files
-After downloading the example Olympus input files in [a zipped package](/examples/WinOS/Olympus.zip), unzip it and place the whole folder "Olympus" under Folder "SIPIProj".
+After downloading the example Olympus input files in [a zipped package](/examples/Linux/Olympus.zip), unzip it and place the whole folder "Olympus" under Folder "SIPIProj".
 
 Inside Folder "Olympus", main functions are stored under Folder "Script" and input files are stored under Folder "Sim_Input". Choose one set of files to try out the OpenSIPI platform for a specific extraction goal.
 
-The folder structure will be created as shown below.
+The folder structure will be created as shown below. The picture is taken from Windows OS. But the folder structure is the same.
 
 ![image](/docs/Figures/Folder_Structure_SimInput.png)
 
@@ -85,13 +85,13 @@ The online version of the input files and main funcitons are listed below.
 ## Run the Main Function
 Use the PDN extraction test case as an example here.
 
-Find the main function python file under "C:\SIPIProj\Olympus\Script\Olympus_PCB_xtractPDN.py". Before running Olympus_PCB_xtractPDN.py, make sure your input information is correct. The contents of Olympus_PCB_xtractPDN.py is shown below. Make sure config_dir, input_type, input_folder all specified correctly.
+Find the main function python file under "xxx/SIPIProj/Olympus/Script/Olympus_PCB_xtractPDN.py". Before running Olympus_PCB_xtractPDN.py, make sure your input information is correct. The contents of Olympus_PCB_xtractPDN.py is shown below. Make sure config_dir, input_type, input_folder all specified correctly.
 ```python
 from opensipi.integrated_flows import sim2report
 
 
 input_info = {
-    'config_dir': r'C:\SIPIProj\Olympus\Sim_Input'+'\\',
+    'config_dir': r'xxx/SIPIProj/Olympus/Sim_Input/',
     'input_type': 'csv',
     'input_folder': 'Sigrity_PDN',
     'op_run_name': '',

@@ -20,7 +20,7 @@ pip3 install git+https://github.com/rivosinc/opensipi
 
 ## Starter Kit
 - [Windows Users](docs/Home/Starter-Kit-for-Windows-Users.md)
-- Linux Users (WIP)
+- [Linux Users](/docs/Home/Starter-Kit-for-Linux-Users.md)
 
 ## Wiki
 [Wiki](docs/Home.md)
