@@ -4,7 +4,7 @@
 
 """
 Author: yanshengw@
-Last updated on Nov. 21, 2023
+Last updated on Jul. 29, 2024
 
 Description:
     This module processes input and output files.
@@ -18,6 +18,7 @@ from opensipi.gsheet_io import GsheetIO
 from opensipi.util.common import (
     SL,
     csv2listoflists,
+    either_case,
     get_str_after_last_symbol,
     get_str_before_first_symbol,
     get_str_before_last_symbol,
@@ -37,7 +38,8 @@ class FileIn:
         self.INPUT_TYPE = info["input_type"]
         self.INPUT_FILE_STARTSWITH = info["input_file_startswith"]
         if self.INPUT_TYPE == "CSV":
-            tgt_query = info["input_dir"] + "*." + self.INPUT_TYPE
+            ext = "".join([either_case(ltr) for ltr in self.INPUT_TYPE])
+            tgt_query = info["input_dir"] + "*." + ext
             sim_input, all_input, stackup_info, settings = self._read_input_csv(tgt_query)
         elif self.INPUT_TYPE == "GSHEET":
             sim_input, all_input, stackup_info, settings = self._read_input_gsheet(info)
