@@ -14,7 +14,7 @@ Description:
 from opensipi.integrated_flows import sim2report
 
 input_info = {
-    "config_dir": r"C:\SIPIProj\Olympus\Sim_Input" + "\\",
+    "input_dir": r"C:\SIPIProj\Olympus\Sim_Input" + "\\",
     "input_type": "csv",
     "input_folder": "Sigrity_DCR",
     "op_run_name": "",

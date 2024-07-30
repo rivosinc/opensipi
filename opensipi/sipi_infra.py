@@ -99,9 +99,9 @@ class Platform:
         """get the project directory."""
         if "proj_dir" in info:
             proj_dir = info["proj_dir"]
-        elif "config_dir" in info:
-            config_dir = expand_home_dir(slash_ending(rectify_dir(info["config_dir"])))
-            proj_dir = get_str_before_last_n_symbol(config_dir, SL, 2) + SL
+        elif "input_dir" in info:
+            input_dir = expand_home_dir(slash_ending(rectify_dir(info["input_dir"])))
+            proj_dir = get_str_before_last_n_symbol(input_dir, SL, 2) + SL
         else:
             raise NoProjDirDefined()
         proj_name = proj_dir.split(SL)[-2]
@@ -110,8 +110,8 @@ class Platform:
     def _get_filein_info(self, info):
         """get the dict used to query input data."""
         if self.INPUT_TYPE == "CSV":
-            config_dir = expand_home_dir(slash_ending(rectify_dir(info["config_dir"])))
-            input_dir = config_dir + info["input_folder"] + SL
+            input_dir = expand_home_dir(slash_ending(rectify_dir(info["input_dir"])))
+            input_dir = input_dir + info["input_folder"] + SL
             input_info = {
                 "input_type": self.INPUT_TYPE,
                 "input_dir": input_dir,
