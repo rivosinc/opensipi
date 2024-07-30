@@ -4,7 +4,7 @@
 
 """
 Author: yanshengw@
-Last updated on Jun. 26, 2024
+Last updated on Jul. 29, 2024
 
 Description:
     This Python3 module contains functions that are commonly used by the
@@ -300,6 +300,12 @@ def expand_home_dir(in_dir):
     home = expanduser("~")
     out_dir = in_dir.replace("~", home)
     return out_dir
+
+
+def either_case(ltr):
+    """generate regex for both cases of a letter, skip for nonalpha."""
+    out_str = f"[{ltr.lower()}{ltr.upper()}]" if ltr.isalpha() else ltr
+    return out_str
 
 
 class Vividict(dict):
