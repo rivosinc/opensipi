@@ -4,22 +4,27 @@ SPDX-FileCopyrightText: 2024 Rivos Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-## Class Platform(input_info)
+# Class Platform()
 
-Usage: This class serves as the OpenSIPI platform. It takes input info, parses them into scripts to automate S-para extraction, processes results and generates a report.
+**Usage**:
 
-Inputs:
-- input_info: dict, input related information
+This class serves as the OpenSIPI platform. It takes input info, parses them into scripts to automate S-para extraction, processes results and generates a report.
 
-	input_type: str, input file type. "csv" or "gsheet".
+**Inputs**:
 
-	input_dir: str, directory of input csv files. This key is mandatory if input_type = "csv".
+- **input_info**: dict, input related information
 
-	input_folder: str, folder name of the input csv files, the specified folder contains the required input info for a specific extraction type like PDN, LSIO, HSIO etc. This key is mandatory if input_type = "csv".
+  **Keys**:
 
-	op_run_name: \[optional\], str, the time stamp of the "Run" folder. It should be omitted or assigned empty string by default. Each time an extraction starts, a folder called "Run_(time stamp)" is created automatically. In order to hack into an existing Run folder, set the existing time stamp to this key.
+	**_input_type_**: str, input file type. "csv" or "gsheet".
 
-Example:
+	**_input_dir_**: str, directory of input csv files. This key is mandatory if _input_type_ = "csv".
+
+	**_input_folder_**: str, folder name of the input csv files, the specified folder contains the required input info for a specific extraction type like PDN, LSIO, HSIO etc. This key is mandatory if _input_type_ = "csv".
+
+	**_op_run_name_**: \[optional\], str, the time stamp of the "Run" folder. It should be omitted or assigned empty string by default. Each time an extraction starts, a folder called "Run_(time stamp)" is created automatically. In order to hack into an existing Run folder, set the existing time stamp to this key.
+
+**Example**:
 
 ```python
 input_info = {
@@ -32,10 +37,13 @@ input_info = {
 pf = Platform(input_info)
 ```
 
-Methods:
-- drop_dsn_file()
+## Methods
 
-Usage: The platform requests the user to drop a design file to an automatically created directory. The following design file formats are accepted.
+- **drop_dsn_file()**
+
+**Usage**:
+
+The platform requests the user to drop a design file to an automatically created directory. The following design file formats are accepted.
 
 BRD: .brd
 
@@ -43,38 +51,115 @@ ODB++: .tgz, .zip, .gz, .z, .tar, .7z
 
 MCM: .mcm
 
-Example:
+**Example**:
+
 ```python
 pf.drop_dsn_file()
 ```
 
-- read_inputs()
+- **read_inputs()**
 
-Usage: Read the input info needed for the extraction setup.
+**Usage**:
 
-Outpus:
-input_data: dict
+Read the input info needed for the extraction setup.
 
-Example:
+**Outputs**:
+
+**_input_data_**: dict
+
+**Example**:
+
 ```python
 input_data = pf.read_inputs()
 ```
 
-- parser(input_data)
+- **parser(input_data)**
 
-Usage: Parse the input data based on the tool in use. This method must not be called before read_inputs().
+**Usage**:
 
-Inputs:
-input_data
+Parse the input data based on the tool in use. This method must not be called before **read_inputs()**.
 
-Outputs:
-sim_exec
+**Inputs**:
 
-Example:
+**_input_data_**: dict
+
+**Outputs**:
+
+**_sim_exec_**: dict
+
+**Example**:
+
 ```python
 sim_exec = pf.parser(input_data)
 ```
 
 - run(sim_exec, mntr_info)
+
+**Usage**:
+
+Run sims and return the result info.
+
+**Inputs**:
+
+**_sim_exec_**: dict
+
+**_mntr_info_**: dict, monitor related information
+
+**Outputs**:
+
+**_result_config_dir_**: str, the full path to the result configuration file.
+
+**_report_config_dir_**: str, the full path to the report configuration file.
+
+**Example**:
+
+```python
+mntr_info = {
+    "email": "",
+    "op_pause_after_model_check": 1,
+}
+
+result_config_dir, report_config_dir = pf.run(sim_exec, mntr_info)
+```
+
 - process_snp(result_config_dir)
+
+**Usage**:
+
+Post-process results and generate plots.
+
+**Inputs**:
+
+**_result_config_dir_**: str, the full path to the result configuration file.
+
+**Outputs**:
+
+**_result_dict_**: dict, post-processing results are kept in a dictionary.
+
+**Example**:
+
+```python
+result_dict = pf.process_snp(result_config_dir)
+```
+
 - report(result_config_dir, report_config_dir)
+
+**Usage**:
+
+Generate a report out of the processed results.
+
+**Inputs**:
+
+**_result_config_dir_**: str, the full path to the result configuration file.
+
+**_report_config_dir_**: str, the full path to the report configuration file.
+
+**Outputs**:
+
+**_report_dir_**: str, a full path to the report.
+
+**Example**:
+
+```python
+report_dir = pf.report(result_config_dir, report_config_dir)
+```
