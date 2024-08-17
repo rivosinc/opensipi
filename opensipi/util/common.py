@@ -12,6 +12,7 @@ OpenSIPI application.
 """
 
 
+import base64
 import csv
 import os
 from datetime import datetime
@@ -306,6 +307,13 @@ def either_case(ltr):
     """generate regex for both cases of a letter, skip for nonalpha."""
     out_str = f"[{ltr.lower()}{ltr.upper()}]" if ltr.isalpha() else ltr
     return out_str
+
+
+def img2str(img_dir):
+    """convert an image file to a string."""
+    with open(img_dir, "rb") as f:
+        img_str = base64.b64encode(f.read()).decode()
+    return img_str
 
 
 class Vividict(dict):

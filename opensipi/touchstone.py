@@ -278,9 +278,9 @@ class TouchStone:
 
 
 if __name__ == "__main__":
-    file_dir = r"C:\AutoProj\PMIC_Study\Xtract\Run_20220926_093539\Result\SNP_S\SIM1_Ferric1_Out2_PPVAR_20220926_093539_092622_093828_13784_S.s2p"
-    plt_name = r"SIM1_Ferric1_Out2_PPVAR"
-    plt_dir = r"C:\AutoProj\PMIC_Study\Xtract\Run_20220926_093539\Report\Plot\\"
+    file_dir = r"S.s2p"
+    plt_name = r"SIM1_PPVAR"
+    plt_dir = r"C:\Study\Xtract\Run_20220926_093539\Report\Plot\\"
     spec_type = r"Zpdn"
     info = {
         "file_dir": file_dir,

@@ -29,6 +29,7 @@ from opensipi.sigrity_tools import (
 from opensipi.util.common import (
     SL,
     csv2dict,
+    expand_home_dir,
     export_dict_to_yaml,
     list_strip,
     load_yaml_to_dict,
@@ -484,6 +485,11 @@ class PowersiPdnExec:
         """export report config yaml for easy report generation."""
         usr_dir = self.tool_config_dir + "usr.yaml"
         usr_info = load_yaml_to_dict(usr_dir)
+        # company logo image
+        if "COMPANY_LOGO" not in usr_info:
+            logoimg_dir = ""
+        else:
+            logoimg_dir = expand_home_dir(usr_info["COMPANY_LOGO"])
         report_config_dir = self.report_dir + "report_config.yaml"
         data = {
             "sim_date": self.spd_proj.run_name,
@@ -497,6 +503,7 @@ class PowersiPdnExec:
             "report_full_path": self.report_dir + "report_" + self.spd_proj.run_name + ".pdf",
             "design_type": self.spd_proj.design_type,
             "usr_id": usr_info["USR_ID"],
+            "logoimg_dir": logoimg_dir,
         }
         export_dict_to_yaml(data, report_config_dir)
         return report_config_dir
