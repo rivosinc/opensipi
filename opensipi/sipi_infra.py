@@ -15,6 +15,7 @@ import glob
 import os
 import shutil
 
+import jinja2
 from pdfme import build_pdf
 
 from opensipi import __version__
@@ -39,6 +40,7 @@ from opensipi.util.common import (
     get_root_dir,
     get_run_time,
     get_str_before_last_n_symbol,
+    img2str,
     load_yaml_to_dict,
     make_dir,
     rectify_dir,
@@ -331,6 +333,48 @@ class Platform:
         self.lg.debug("A summary report is created at " + dir)
         return dir
 
+    def report_html(self, result_config_dir, report_config_dir):
+        """Generate a HTML report out of the processed results."""
+        # load report config file
+        report_config = load_yaml_to_dict(expand_home_dir(report_config_dir))
+        # pdf template selection based on report type
+        report_type = report_config["report_type"]
+
+        # snp figures
+        output_list = []
+        if report_type in ["PDN", "IO"]:
+            result_dict = self.process_snp(expand_home_dir(result_config_dir))
+            for key, val in result_dict.items():
+                output_list.extend(val)
+        elif report_type in ["DCR"]:
+            pass
+
+        # summary
+        summary_list = [
+            ["Simulation Start Time", report_config["sim_date"]],
+            ["Author", report_config["usr_id"]],
+            ["Project Name", report_config["proj_name"]],
+            ["Extraction Tool", report_config["xtract_tool"]],
+            ["Extraction Type", report_config["xtract_type"]],
+            ["Design File", report_config["dsn_name"]],
+        ]
+
+        # misc parts for the report
+        misc_dict = {
+            "company_logo": img2str(report_config["logoimg_dir"]),
+        }
+
+        dir = expand_home_dir(report_config["report_full_path"])
+        dir = dir.replace(".pdf", ".html")
+        if report_type == "PDN":
+            self.__gen_pdn_html_report(summary_list, output_list, misc_dict, dir)
+        elif report_type == "IO":
+            pass
+        elif report_type == "DCR":
+            pass  # pending to include DCR report
+        self.lg.debug("A summary report is created at " + dir)
+        return dir
+
     def export_upload_config(self, report_config_dir):
         """export the upload config file."""
         report_config = load_yaml_to_dict(report_config_dir)
@@ -541,6 +585,29 @@ class Platform:
             ctnt_index += 1
         with open(dir, "wb") as f:
             build_pdf(pdf_report, f)
+
+    def __gen_pdn_html_report(
+        self, summary_list, output_list, misc_dict, dir, pdn_report_temp="PDN_Type1.html"
+    ):
+        """Generate a HTML report for PDN."""
+        # prepare result list
+        result_list = []
+        for item in output_list:
+            img_str = img2str(item[1])
+            temp = [item[0], item[2], item[3], item[4], img_str]
+            result_list.append(temp)
+        report_dict = {
+            "summary_list": summary_list,
+            "logo_img": misc_dict["company_logo"],
+            "result_list": result_list,
+        }
+        template = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(self.TEMPLATE_DIR + "reports" + SL),
+            autoescape=jinja2.select_autoescape,
+        ).get_template(pdn_report_temp)
+        report_ctnt = template.render(report_dict)
+        with open(dir, "w") as f:
+            f.write(report_ctnt)
 
     # ==========================================================================
     # upload2drive() related methods

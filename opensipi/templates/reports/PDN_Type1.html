@@ -1,0 +1,83 @@
+<!--
+SPDX-FileCopyrightText: © 2024 Rivos Inc.
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-parameter Extraction Report</title>
+    <style>
+        body {
+            margin: 2em;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #555;
+            border-collapse: collapse;
+            padding: 0.25em;
+        }
+    </style>
+</head>
+
+<body class="container">
+    <img class="img-fluid" src="data:image/png;base64, {{logo_img}}" alt="logo"
+        style="float: left; width:110px; height:50px; margin-right: 0.5em;">
+    <div>
+        <span>S-parameter Extraction Report</span><br>
+        <span>Company Name</span>
+    </div>
+    <hr>
+    <div style="margin-top: 2em;"></div>
+    <table class="table">
+        <tbody>
+            {% for item in summary_list %}
+            <tr>
+                <th>{{item[0]}}</th>
+                <td>{{item[1]}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Results Summary</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>DCR (mOhm)</th>
+                <th>L@100MHz (pH)</th>
+                <th>C@10kHz (uF)</th>
+                <th>Figure</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in result_list %}
+            <tr>
+                <th>{{item[0]}}</th>
+                <td>{{item[1]}}</td>
+                <td>{{item[2]}}</td>
+                <td>{{item[3]}}</td>
+                <td><a href=#{{item[0]}}>Fig.{{loop.index}}</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="page-break-after: always;">&nbsp;</p>
+    <h2>Figures</h2>
+    {% for item in result_list %}
+    <a name={{item[0]}}>
+        <p>Fig.{{loop.index}} {{item[0]}}</p>
+    <img class="img-fluid" src="data:image/jpeg;base64, {{item[4]}}" alt="Image">
+    <br>
+    {% endfor %}
+</body>
+
+</html>
