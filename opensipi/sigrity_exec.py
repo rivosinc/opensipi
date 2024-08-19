@@ -942,7 +942,7 @@ class ClarityExec(PowersiIOExec):
 
     def __init__(self, info):
         super().__init__(info)
-        self.result_dirs = {
+        self.result_sub_dirs = {
             "snp_s_dir": self.snp_s_dir,
         }
 

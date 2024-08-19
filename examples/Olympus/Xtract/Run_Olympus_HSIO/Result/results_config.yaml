@@ -5,7 +5,9 @@ CONNECTIVITY:
       - [2, 4]
     RL: [1, 2, 3, 4]
 checked_keys: [SIM1_PE_CPU_RX_L0]
-plot_dir: C:\SIPIProj\Olympus\Xtract\Run_20240122_163105\Report\Plot\
-result_dirs:
-  { snp_s_dir: 'C:\SIPIProj\Olympus\Xtract\Run_20240122_163105\Result\SNP_S\' }
+plot_dir: /work/yanshengw/OpenSIPI/Olympus/Xtract/Run_20240819_120532/Report/Plot/
+result_sub_dirs:
+  {
+    snp_s_dir: /work/yanshengw/OpenSIPI/Olympus/Xtract/Run_20240819_120532/Result/SNP_S/,
+  }
 spectype: { SIM1_PE_CPU_RX_L0: Spcie6 }
