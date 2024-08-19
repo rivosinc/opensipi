@@ -1,0 +1,11 @@
+CONNECTIVITY:
+  SIM1_PE_CPU_RX_L0:
+    IL:
+      - [1, 3]
+      - [2, 4]
+    RL: [1, 2, 3, 4]
+checked_keys: [SIM1_PE_CPU_RX_L0]
+plot_dir: C:\SIPIProj\Olympus\Xtract\Run_20240122_163105\Report\Plot\
+result_dirs:
+  { snp_s_dir: 'C:\SIPIProj\Olympus\Xtract\Run_20240122_163105\Result\SNP_S\' }
+spectype: { SIM1_PE_CPU_RX_L0: Spcie6 }

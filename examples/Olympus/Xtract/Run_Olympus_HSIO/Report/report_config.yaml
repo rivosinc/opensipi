@@ -1,0 +1,9 @@
+{
+  dsn_name: 2-SLOT_48LANE_RISER.brd,
+  proj_name: OLYMPUS,
+  report_dir: 'C:\SIPIProj\Olympus\Xtract\Run_20240122_163105\Report\',
+  report_type: IO,
+  sim_date: "20240122_163105",
+  xtract_tool: SIGRITY,
+  xtract_type: HSIO,
+}
