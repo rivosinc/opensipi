@@ -1,9 +1,14 @@
 {
+  design_type: PCB,
   dsn_name: 2-SLOT_48LANE_RISER.brd,
-  proj_name: OLYMPUS,
-  report_dir: 'C:\SIPIProj\Olympus\Xtract\Run_20240122_163105\Report\',
+  logoimg_dir: /home/yanshengw/opensipi_config/Company_logo.png,
+  proj_name: Olympus,
+  report_dir: /work/yanshengw/OpenSIPI/Olympus/Xtract/Run_20240819_120532/Report/,
+  report_full_path: /work/yanshengw/OpenSIPI/Olympus/Xtract/Run_20240819_120532/Report/report_20240819_120532.pdf,
   report_type: IO,
-  sim_date: "20240122_163105",
-  xtract_tool: SIGRITY,
+  result_dir: /work/yanshengw/OpenSIPI/Olympus/Xtract/Run_20240819_120532/Result/,
+  sim_date: "20240819_120532",
+  usr_id: user_id,
+  xtract_tool: Sigrity,
   xtract_type: HSIO,
 }

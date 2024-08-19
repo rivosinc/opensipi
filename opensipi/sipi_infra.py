@@ -16,6 +16,7 @@ import os
 import shutil
 
 import jinja2
+import pdfkit
 from pdfme import build_pdf
 
 from opensipi import __version__
@@ -364,16 +365,17 @@ class Platform:
             "company_logo": img2str(report_config["logoimg_dir"]),
         }
 
-        dir = expand_home_dir(report_config["report_full_path"])
-        dir = dir.replace(".pdf", ".html")
+        pdf_dir = expand_home_dir(report_config["report_full_path"])
+        html_dir = pdf_dir.replace(".pdf", ".html")
         if report_type == "PDN":
-            self.__gen_pdn_html_report(summary_list, output_list, misc_dict, dir)
+            self.__gen_pdn_html_report(summary_list, output_list, misc_dict, html_dir)
         elif report_type == "IO":
-            pass
+            self.__gen_io_html_report(summary_list, output_list, misc_dict, html_dir)
         elif report_type == "DCR":
             pass  # pending to include DCR report
-        self.lg.debug("A summary report is created at " + dir)
-        return dir
+        self.convert_html_to_pdf_report(html_dir, pdf_dir)
+        self.lg.debug("A summary report is created at " + pdf_dir)
+        return pdf_dir
 
     def export_upload_config(self, report_config_dir):
         """export the upload config file."""
@@ -499,7 +501,7 @@ class Platform:
         checked_keys = result_config["checked_keys"]
         spectype = result_config["spectype"]
         conn = result_config["CONNECTIVITY"]
-        snp_list = glob.glob(snp_dir + "*.s*p")
+        snp_list = glob.glob(snp_dir + "*.[sS]*[pP]")
         for i_snp in snp_list:
             file_dir = i_snp
             snp_name = i_snp.replace(snp_dir, "")
@@ -608,6 +610,36 @@ class Platform:
         report_ctnt = template.render(report_dict)
         with open(dir, "w") as f:
             f.write(report_ctnt)
+
+    def __gen_io_html_report(
+        self, summary_list, output_list, misc_dict, dir, io_report_temp="IO_Type1.html"
+    ):
+        """Generate a HTML report for PDN."""
+        # prepare result list
+        result_list = []
+        for ilist in output_list:
+            item = ilist[0]
+            img_str = img2str(item[1])
+            temp = [item[0], "", img_str]
+            result_list.append(temp)
+        report_dict = {
+            "summary_list": summary_list,
+            "logo_img": misc_dict["company_logo"],
+            "result_list": result_list,
+        }
+        template = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(self.TEMPLATE_DIR + "reports" + SL),
+            autoescape=jinja2.select_autoescape,
+        ).get_template(io_report_temp)
+        report_ctnt = template.render(report_dict)
+        with open(dir, "w") as f:
+            f.write(report_ctnt)
+
+    def convert_html_to_pdf_report(self, html_dir, pdf_dir):
+        """Convert a html report to a pdf report."""
+        options = {"page-size": "A4", "enable-local-file-access": True}
+        with open(html_dir) as f:
+            pdfkit.from_file(f, pdf_dir, options=options)
 
     # ==========================================================================
     # upload2drive() related methods
