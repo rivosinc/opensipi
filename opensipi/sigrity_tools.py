@@ -88,6 +88,10 @@ class SpdModeler:
         self.sig_config_dict = load_yaml_to_dict(self.tool_config_dir + "config_sigrity.yaml")
         self.sig_lic = self.sig_config_dict["SIG_LIC"]
         self.sig_lib = expand_home_dir(self.sig_config_dict["SIG_LIB"])
+        if "SHAPE_CUT_TYPE" not in self.sig_config_dict:
+            self.SHAPE_CUT_TYPE = "CONFORMAL"
+        else:
+            self.SHAPE_CUT_TYPE = self.sig_config_dict["SHAPE_CUT_TYPE"]
         self.SOLVER = "powersi"
         self.UNIKEY = SIM_INPUT_COL_TITLE[0]
         self.CKBOX = SIM_INPUT_COL_TITLE[1]
@@ -435,6 +439,14 @@ class PowersiPdnModeler(SpdModeler):
         "sigrity::hook -port {Port_NUMBER} -circuit NCKT " + "-NegativeNode NNODE {!}\n"
     )
     TCL_IMPORT_OPTION = "sigrity::import option {OPTION_DIR} {!}\n"
+    TCL_CUTBYNETPOLY = (
+        "sigrity::update net selected 0 {GNDNETS} {!}\n"
+        + "sigrity::cut addCuttingPolygon -Auto -IncludeEnabledSignalShapes {1} {!}\n"
+        + "sigrity::delete area -NetToBoundary NETNAMES -PreviewResultFile $sim_spd {!}\n"
+        + "sigrity::update net selected 1 {GNDNETS} {!}\n"
+        + "sigrity::process shape {!}\n"
+        + "sigrity::delete area unPreview -keepResult 1 {!}\n"
+    )
 
     def __init__(self, info):
         super().__init__(info)
@@ -543,7 +555,7 @@ class PowersiPdnModeler(SpdModeler):
             ctnt.append(self._en_nets(net_pos, "PowerNets"))
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
             # autocut
-            ctnt.append(self._cut_shape(net_pos))
+            ctnt.append(self._cut_shape(net_pos, net_neg))
             # ports
             ctnt.append(self._set_up_ports(port_main, port_sns))
             # dns components
@@ -563,10 +575,29 @@ class PowersiPdnModeler(SpdModeler):
         ctnt = ctnt.replace("GRPNETS", grp)
         return ctnt
 
-    def _cut_shape(self, net):
-        """automatically cut shape"""
+    def _cut_shape(self, net_pos, net_neg):
+        """automatically cut shape based on selected cut type.
+        CONFORMAL: conformal polygon cut shape
+        Any other words: the regular rectangular cut shape
+        """
+        if self.SHAPE_CUT_TYPE == "CONFORMAL":
+            line_tmp = self.__cut_shape_conformal(net_pos, net_neg)
+        else:
+            line_tmp = self.__cut_shape_rect(net_pos)
+        return line_tmp
+
+    def __cut_shape_rect(self, net):
+        """automatically cut shape in a rectangular shape."""
         line_tmp = "\n# auto cut\n" + self.TCL_CUTBYNET
         line_tmp = line_tmp.replace("NETNAMES", " ".join(net))
+        return line_tmp
+
+    def __cut_shape_conformal(self, net_pos, net_neg):
+        """automatically cut conformal polygon shape for selected nets."""
+        line_tmp = "\n# auto cut\n" + self.TCL_CUTBYNETPOLY
+        net_bracket = ["{" + i + "}" for i in net_pos]
+        line_tmp = line_tmp.replace("NETNAMES", " ".join(net_bracket))
+        line_tmp = line_tmp.replace("GNDNETS", " ".join(net_neg))
         return line_tmp
 
     def _set_up_ports(self, port_main, port_sns):
@@ -752,7 +783,7 @@ class PowersiIOModeler(PowersiPdnModeler):
             ctnt.append(self._en_nets(net_pos, "NULL"))  # signal net group
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
             # autocut
-            ctnt.append(self._cut_shape(net_pos))
+            ctnt.append(self._cut_shape(net_pos, net_neg))
             # dns components
             ctnt.append(self._turn_off_dns_ckt())
             # freq range
@@ -884,13 +915,6 @@ class ClarityModeler(PowersiIOModeler):
         "sigrity::update workflow -product {Clarity 3D "
         + "Layout} -workflowkey {3DFEMExtraction} {!}\n"
     )
-    TCL_CUTBYNETPOLY = (
-        "sigrity::update net selected 0 {GNDNETS} {!}\n"
-        + "sigrity::cut addCuttingPolygon -Auto -IncludeEnabledSignalShapes {1} {!}\n"
-        + "sigrity::delete area -NetToBoundary NETNAMES -PreviewResultFile $sim_spd {!}\n"
-        + "sigrity::update net selected 1 {GNDNETS} {!}\n"
-        + "sigrity::process shape {!}\n"
-    )
 
     def __init__(self, info):
         super().__init__(info)
@@ -953,14 +977,6 @@ class ClarityModeler(PowersiIOModeler):
             self.lg.debug(filename + " is created!")
         else:
             self.lg.debug(filename + " already exists. No new key tcl is created!")
-
-    def _cut_shape(self, net_pos, net_neg):
-        """automatically cut polygon shape for selected nets."""
-        line_tmp = "\n# auto cut\n" + self.TCL_CUTBYNETPOLY
-        net_bracket = ["{" + i + "}" for i in net_pos]
-        line_tmp = line_tmp.replace("NETNAMES", " ".join(net_bracket))
-        line_tmp = line_tmp.replace("GNDNETS", " ".join(net_neg))
-        return line_tmp
 
     def _set_up_ports(self, info):
         """set up ports and re-order them as specified in the gSheet"""
@@ -1154,7 +1170,7 @@ class PowerdcModeler(PowersiPdnModeler):
             ctnt.append(self._en_nets(net_pos, "PowerNets"))
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
             # autocut
-            ctnt.append(self._cut_shape(net_pos))
+            ctnt.append(self._cut_shape(net_pos, net_neg))
             # create the run key tcl
             txtfile_wr(self.run_key_dir + filename, "".join(ctnt))
             self.lg.debug(filename + " is created!")
