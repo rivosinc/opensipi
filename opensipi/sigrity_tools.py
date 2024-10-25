@@ -440,10 +440,10 @@ class PowersiPdnModeler(SpdModeler):
     )
     TCL_IMPORT_OPTION = "sigrity::import option {OPTION_DIR} {!}\n"
     TCL_CUTBYNETPOLY = (
-        "sigrity::update net selected 0 {GNDNETS} {!}\n"
+        "sigrity::update net selected 0 GNDNETS {!}\n"
         + "sigrity::cut addCuttingPolygon -Auto -IncludeEnabledSignalShapes {1} {!}\n"
         + "sigrity::delete area -NetToBoundary NETNAMES -PreviewResultFile $sim_spd {!}\n"
-        + "sigrity::update net selected 1 {GNDNETS} {!}\n"
+        + "sigrity::update net selected 1 GNDNETS {!}\n"
         + "sigrity::process shape {!}\n"
         + "sigrity::delete area unPreview -keepResult 1 {!}\n"
     )
