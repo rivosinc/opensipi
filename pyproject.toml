@@ -24,7 +24,7 @@ tqdm = "^4.66.1"
 google-api-python-client = "^2.115.0"
 numpy = "^1.26.4"
 scipy = "^1.13.0"
-jinja2 = "^3.1.4"
+jinja2 = "^3.1.5"
 pdfkit = "^1.0.0"
 typing-extensions = "^4.12.2"
 
