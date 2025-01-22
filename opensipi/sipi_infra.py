@@ -124,7 +124,7 @@ class Platform:
             gsuites_config = load_yaml_to_dict(self.TOOL_CONFIG_DIR + "config_gsuites.yaml")
             input_info = {
                 "input_type": self.INPUT_TYPE,
-                "account_key": gsuites_config["ACCOUNT_KEY_DIR"],
+                "account_key": expand_home_dir(rectify_dir(gsuites_config["ACCOUNT_KEY_DIR"])),
                 "account_type": gsuites_config["ACCOUNT_TYPE"],
                 "sheet_url": info["input_url"],
                 "input_file_startswith": INPUT_FILE_STARTSWITH,

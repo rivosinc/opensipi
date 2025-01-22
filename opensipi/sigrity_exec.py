@@ -640,7 +640,10 @@ class PowersiPdnExec:
         # component ports
         if (col_n == "") and (col_p != ""):
             # only 1 component is allowed
-            if ("," in col_p) or (";" in col_p):
+            if col_p.upper().startswith("REC") & ("{" in col_p):
+                # area port skipped
+                pass
+            elif ("," in col_p) or (";" in col_p):
                 error_msg.append(
                     "\tRow "
                     + str(i)
@@ -765,8 +768,11 @@ class PowersiPdnExec:
         comp = []
         comp_grp = raw_data.split(";")
         for i_grp in comp_grp:
-            tmp = i_grp.split(",")
-            comp.extend([tmp[0]])
+            if i_grp.upper().startswith("REC") & ("{" in i_grp):
+                pass
+            else:
+                tmp = i_grp.split(",")
+                comp.extend([tmp[0]])
         return comp
 
     def _get_unique_items_in_col(self, data, col):

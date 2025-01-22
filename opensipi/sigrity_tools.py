@@ -12,6 +12,7 @@ Description:
 
 
 import os
+import re
 
 from opensipi.constants.CONSTANTS import FREQ_RANGE, SIM_INPUT_COL_TITLE
 from opensipi.util.common import (
@@ -421,6 +422,11 @@ class PowersiPdnModeler(SpdModeler):
         "sigrity::delete area -Net {PowerNets} NETNAMES {!}\n" + "sigrity::process shape {!}\n"
     )
     TCL_DIS_CAP = "sigrity::update circuit -manual {disable} CKT {!}\n"
+    TCL_PORT_AREA = (
+        "sigrity::add AreaPort -param {Xmin LLX, Ymin LLY, Xmax URX, Ymax URY, "
+        + "Rows 1, Cols 1, Layer 'LAYNAME', PNet 'POSNET', NNet 'NEGNET', "
+        + "Index NUMBER, Prefix 'Port_', Type '2D Port', IsGroup 0} {!}\n"
+    )
     TCL_PORT_COMP = "sigrity::add port -circuit CKT {!}\
         \nset port_info [sigrity::querydetails port -index {SEQ}]\
         \nset port_name [lindex $port_info 0]\
@@ -557,7 +563,7 @@ class PowersiPdnModeler(SpdModeler):
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # ports
-            ctnt.append(self._set_up_ports(port_main, port_sns))
+            ctnt.append(self._set_up_ports(port_main, port_sns, net_pos, net_neg))
             # dns components
             ctnt.append(self._turn_off_dns_ckt())
             # freq range
@@ -600,21 +606,21 @@ class PowersiPdnModeler(SpdModeler):
         line_tmp = line_tmp.replace("GNDNETS", " ".join(net_neg))
         return line_tmp
 
-    def _set_up_ports(self, port_main, port_sns):
+    def _set_up_ports(self, port_main, port_sns, net_pos, net_neg):
         """set up all ports, return string"""
         port_lines = []
         i = 0  # port sequence
         # set up main ports
         for i_port in port_main:
-            port_lines.append(self._set_port(i_port, i))
+            port_lines.append(self._set_port(i_port, i, net_pos, net_neg))
             i = i + 1
         # set up sense ports
         for i_port in port_sns:
-            port_lines.append(self._set_port(i_port, i))
+            port_lines.append(self._set_port(i_port, i, net_pos, net_neg))
             i = i + 1
         return "".join(port_lines)
 
-    def _set_port(self, port_info, seq):
+    def _set_port(self, port_info, seq, net_pos, net_neg):
         """set up each individual port
         one of the following port is set up:
         1. cap port, pos: 1 single comp starting with 'C', neg: empty
@@ -635,12 +641,27 @@ class PowersiPdnModeler(SpdModeler):
             # cap port
             if port_info[0][0].upper() == "C":
                 line_tmp = self.TCL_DIS_CAP + self.TCL_PORT_COMP
+                comp = self._map_refdes_n_pin(port_info[0])[0]
+                line_tmp = line_tmp.replace("CKT", comp)
+                line_tmp = line_tmp.replace("SEQ", port_seq)
+            # area port
+            elif port_info[0].upper().startswith("REC") & ("{" in port_info[0]):
+                areaport_info = striped_str2list(re.findall(r"\{(.*?)\}", port_info[0])[0], ",")
+                line_tmp = self.TCL_PORT_AREA
+                line_tmp = line_tmp.replace("LLX", areaport_info[0])
+                line_tmp = line_tmp.replace("LLY", areaport_info[1])
+                line_tmp = line_tmp.replace("URX", areaport_info[2])
+                line_tmp = line_tmp.replace("URY", areaport_info[3])
+                line_tmp = line_tmp.replace("LAYNAME", areaport_info[4])
+                line_tmp = line_tmp.replace("POSNET", net_pos[0])
+                line_tmp = line_tmp.replace("NEGNET", net_neg[0])
             # component port
             else:
                 line_tmp = self.TCL_PORT_COMP
-            comp = self._map_refdes_n_pin(port_info[0])[0]
-            line_tmp = line_tmp.replace("CKT", comp)
-            line_tmp = line_tmp.replace("SEQ", port_seq)
+                comp = self._map_refdes_n_pin(port_info[0])[0]
+                line_tmp = line_tmp.replace("CKT", comp)
+                line_tmp = line_tmp.replace("SEQ", port_seq)
+
             line_tmp = line_tmp.replace("NUMBER", port_num)
         # differntial port which requires pos and neg inputs
         else:
