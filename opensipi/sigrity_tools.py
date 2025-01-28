@@ -74,8 +74,13 @@ class SpdModeler:
         self.surface_roughness = info["stackup_info"]["surfaceroughness"]
         self.settings = info["settings"]
         self.run_name = info["run_name"]
-        self.xtract_type = info["settings"]["EXTRACTIONTYPE"].upper()
-        self.design_type = info["settings"]["DESIGNTYPE"].upper()
+        self.xtract_type = self.settings["EXTRACTIONTYPE"].upper()
+        self.design_type = self.settings["DESIGNTYPE"].upper()
+        if "GLOBALFREQ" not in self.settings:
+            self.GLOBALFREQ = []
+        else:
+            freq_tmp = striped_str2list(self.settings["GLOBALFREQ"], ",")
+            self.GLOBALFREQ = rm_list_item(freq_tmp, "")
         self.tool_config_dir = info["tool_config_dir"]
         self.dsn_dir = info["dsn_dir"]
         self.dsn_name = info["dsn_name"]
@@ -103,6 +108,8 @@ class SpdModeler:
         self.NEGMP = SIM_INPUT_COL_TITLE[6]
         self.POSAP = SIM_INPUT_COL_TITLE[7]
         self.NEGAP = SIM_INPUT_COL_TITLE[8]
+        self.OPFREQ = SIM_INPUT_COL_TITLE[9]
+        self.OPDIFFPAIR = SIM_INPUT_COL_TITLE[10]
         self.MAT_CMX = "materials.cmx"
         self.TEMP_MAT = "temp_materials.cmx"
         self.STACKUP_CSV = "stackup.csv"
@@ -555,6 +562,8 @@ class PowersiPdnModeler(SpdModeler):
             port_sns = self.__rm_empty_port(
                 get_cols_out_of_list_of_list(info, [self.POSAP, self.NEGAP])
             )
+            # determine freq
+            freq_list = self._def_freq_list(info, spec_type)
             # nets
             ctnt = ["# enabling and grouping nets\n"]
             ctnt.append(self.TCL_DIS_ALL_NETS)
@@ -567,12 +576,28 @@ class PowersiPdnModeler(SpdModeler):
             # dns components
             ctnt.append(self._turn_off_dns_ckt())
             # freq range
-            ctnt.append(self._set_freq_range(spec_type))
+            ctnt.append(self._set_freq_range(freq_list))
             # create the run key tcl
             txtfile_wr(self.run_key_dir + filename, "".join(ctnt))
             self.lg.debug(filename + " is created!")
         else:
             self.lg.debug(filename + " already exists. No new key tcl is created!")
+
+    def _def_freq_list(self, info, spec_type):
+        """define freq list."""
+        freq_list = []
+        if self.OPFREQ not in info[0]:
+            local_freq = []
+        else:
+            local_freq = self._get_unique_items_in_col(info, self.OPFREQ)
+        if local_freq:  # not empty list
+            freq_list = local_freq
+        else:
+            if self.GLOBALFREQ:  # not empty list
+                freq_list = self.GLOBALFREQ
+            else:
+                freq_list = self._set_freq_by_spectype(spec_type)
+        return freq_list
 
     def _en_nets(self, net, grp):
         """enable nets and move to a certain group, return string"""
@@ -727,28 +752,24 @@ class PowersiPdnModeler(SpdModeler):
         )
         return cmd_tcl
 
-    def _set_freq_range(self, spec_type):
-        """set up freq range according to spec type"""
-        line_header = "\n# set up freq range\n"
+    def _set_freq_by_spectype(self, spec_type):
+        """determine freq range by spec_type."""
+        freq_list = []
         if spec_type.upper().startswith("Z"):
             freq_list = FREQ_RANGE["Z"]
+        else:
+            freq_list = FREQ_RANGE[spec_type.upper()]
+        return freq_list
+
+    def _set_freq_range(self, freq_list):
+        """set up freq range."""
+        line_header = "\n# set up freq range\n"
+        line = ""
+        if len(freq_list) == 2:  # PDN freq
             line = self.TCL_FREQ_AFS
             line = line.replace("FREQ_START", str(freq_list[0]))
             line = line.replace("FREQ_END", str(freq_list[1]))
-        elif spec_type.upper() == "SDDR5":
-            freq_list = FREQ_RANGE["Sddr5"]
-            line = self.TCL_FREQ_LINSTEP
-            line = line.replace("FREQ_START", str(freq_list[0]))
-            line = line.replace("FREQ_END", str(freq_list[1]))
-            line = line.replace("FREQ_STEP", str(freq_list[2]))
-        elif spec_type.upper() == "SPCIE6":
-            freq_list = FREQ_RANGE["Spcie6"]
-            line = self.TCL_FREQ_LINSTEP
-            line = line.replace("FREQ_START", str(freq_list[0]))
-            line = line.replace("FREQ_END", str(freq_list[1]))
-            line = line.replace("FREQ_STEP", str(freq_list[2]))
-        elif spec_type.upper() == "SLS":
-            freq_list = FREQ_RANGE["Sls"]
+        elif len(freq_list) == 3:  # LSIO freq
             line = self.TCL_FREQ_LINSTEP
             line = line.replace("FREQ_START", str(freq_list[0]))
             line = line.replace("FREQ_END", str(freq_list[1]))
@@ -798,6 +819,8 @@ class PowersiIOModeler(PowersiPdnModeler):
             spec_type = self._get_unique_items_in_col(info, self.SPECTYPE)[0]
             net_pos = self._get_unique_items_in_col(info, self.POSNET)
             net_neg = self._get_unique_items_in_col(info, self.NEGNET)
+            # determine freq
+            freq_list = self._def_freq_list(info, spec_type)
             # enable all nets together
             ctnt.append("# enable and group nets for all\n")
             ctnt.append(self.TCL_DIS_ALL_NETS)
@@ -808,7 +831,7 @@ class PowersiIOModeler(PowersiPdnModeler):
             # dns components
             ctnt.append(self._turn_off_dns_ckt())
             # freq range
-            ctnt.append(self._set_freq_range(spec_type))
+            ctnt.append(self._set_freq_range(freq_list))
             # create the run key tcl
             txtfile_wr(self.run_key_dir + filename, "".join(ctnt))
             self.lg.debug(filename + " is created!")
@@ -967,6 +990,8 @@ class ClarityModeler(PowersiIOModeler):
             spec_type = self._get_unique_items_in_col(info, self.SPECTYPE)[0]
             net_pos = self._get_unique_items_in_col(info, self.POSNET)
             net_neg = self._get_unique_items_in_col(info, self.NEGNET)
+            # determine freq
+            freq_list = self._def_freq_list(info, spec_type)
             # switch to clarity3dlayout flow
             ctnt = ["# clarity3dlayout workflow\n"]
             ctnt.append(self.TCL_UPDATE_3DFEM_FLOW)
@@ -989,7 +1014,7 @@ class ClarityModeler(PowersiIOModeler):
             # dns components
             ctnt.append(self._turn_off_dns_ckt())
             # freq range
-            ctnt.append(self._set_freq_range(spec_type))
+            ctnt.append(self._set_freq_range(freq_list))
             # set up compute resources
             ctnt.append("\n# set up compute resources\n")
             ctnt.append(self.TCL_COMPUTE_RESOURCE.replace("CORENUM", str(self.CORE_NUM)))
@@ -1070,18 +1095,20 @@ class ClarityModeler(PowersiIOModeler):
         line = line.replace("PORT_NAME_INDEX", port_name_index)
         return line
 
-    def _set_freq_range(self, spec_type):
-        """set up freq range according to spec type"""
+    def _set_freq_range(self, freq_list):
+        """set up freq range"""
         line_header = "\n# set up freq range\n"
-        if spec_type.upper() == "SDDR5":
-            freq_list = FREQ_RANGE["Sddr5"]
-            line = self.TCL_FREQ_FULLWAVE
+        line = ""
+        if len(freq_list) == 2:  # PDN freq
+            line = self.TCL_FREQ_AFS
+            line = line.replace("FREQ_START", str(freq_list[0]))
+            line = line.replace("FREQ_END", str(freq_list[1]))
+        elif len(freq_list) == 3:  # LSIO freq
+            line = self.TCL_FREQ_LINSTEP
             line = line.replace("FREQ_START", str(freq_list[0]))
             line = line.replace("FREQ_END", str(freq_list[1]))
             line = line.replace("FREQ_STEP", str(freq_list[2]))
-            line = line.replace("FREQ_SOL", str(freq_list[3]))
-        elif spec_type.upper() == "SPCIE6":
-            freq_list = FREQ_RANGE["Spcie6"]
+        elif len(freq_list) == 4:  # HSIO freq:
             line = self.TCL_FREQ_FULLWAVE
             line = line.replace("FREQ_START", str(freq_list[0]))
             line = line.replace("FREQ_END", str(freq_list[1]))

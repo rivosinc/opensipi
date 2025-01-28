@@ -27,6 +27,8 @@ SIM_INPUT_COL_TITLE = [
     "NEGATIVE_MAIN_PORTS",
     "POSITIVE_AUX_PORTS",
     "NEGATIVE_AUX_PORTS",
+    "OP_FREQ",
+    "OP_DIFFPAIR",
 ]
 
 FREQ_RANGE = {
@@ -35,10 +37,10 @@ FREQ_RANGE = {
     "Z": [0, 1e9],
     # LSIO, PowerSI
     # linear step [FREQ_START, FREQ_END, FREQ_STEP]
-    "Sls": [1e6, 5e9, 5e6],
+    "SLS": [1e6, 5e9, 5e6],
     # HSIO, Clarity
     # linear step [FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL]
-    "Sddr5": [1e6, 15e9, 100e6, 5e9],
+    "SDDR5": [1e6, 15e9, 100e6, 5e9],
     # linear step [FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL]
-    "Spcie6": [1e6, 50e9, 100e6, 16e9],
+    "SPCIE6": [1e6, 50e9, 100e6, 16e9],
 }
