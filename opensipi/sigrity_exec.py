@@ -836,7 +836,7 @@ class PowersiPdnExec:
 
     def __check_cap_model(self):
         """Check if SPICE models are used for a cap. The assumption
-        is that a SPICE model will be longer than 5 lines.
+        is that a SPICE model will be longer than 10 lines.
         """
         input_key = list(self.sim_input.keys())
         cap_model_lines = {}
@@ -860,7 +860,7 @@ class PowersiPdnExec:
         for key in cap_model_lines:
             val = cap_model_lines[key]
             for i_val in val:
-                if i_val[1] <= 5:
+                if i_val[1] <= 10:
                     warning_msg.append(f"Sim Key: {key} -> {i_val[0]}")
         if len(warning_msg) == 1:
             self.lg.debug("Cap models are checked. " + "All uses SPICE type models! ")
