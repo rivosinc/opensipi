@@ -19,13 +19,15 @@ These files contains all necessary information needed to set up simulations and 
 | --------- | ------------ |
 | Unique_Key | Simulation identifier. Each name given represents an individual simulation to be run. Any meaningful name can be assigned to this column but it must be unique in this sheet. The simulation file will be created with the name "Sim[x]_[Unique_Key]_[Run_Time]_[...].[File_Extension]". "Run_Time" is automatically assigned when the simulations start unless otherwise specified by the users. "File_Extension" refers to spd if using Sigrity tools. For 1-port or 2-port simulations, one row can store all the information needed to complete that simulations. For 2+ port simulations, multiple rows are needed to store all port information. Only the beginning row has to be assigned with a "Unique_Key". The subsequent rows with blank cells in Col A will be treated as for the same simulation. |
 | Check_Box | Simulation enable pin. "True" or "False". It could be presented as a check box in Excel or Google Sheets. |
-| Spec_Type | It indicates the simulation frequency and the way to post-process simulation data. Only one spec type needs to be assigned at the beginning row of a simulation info. Currently, the available spec type will be introduced in the next section. |
+| Spec_Type | It indicates the simulation frequency and the way to post-process simulation data. Only one spec type needs to be assigned at the beginning row of a simulation info. Currently, the available spec type will be introduced in the next section. Note that the indicated simulation frequency takes the lowest priority, i.e. it works only when "Op_Freq" is not defined per "Unique_Key" and "GlobalFreq" is not defined in the "Special_Settings" Tab. |
 | Positive_Nets | Positive nets to be included in the simulation. Use "," to separate multiple nets. |
 | Negative_Nets| Negative nets to be included in the simulation. Use "," to separate multiple nets. |
 | Positive_Main_Ports | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins. |
 | Negative_Main_Ports | Refdes and its pins to set up the negative side of a port. Use "," to separate the refdes and its multiple pins. |
 | Positive_Aux_Ports | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins. Aux ports of the obtained S-/Z-parameters may be shorted or open during post-processing based on the specified "Spec_Type". |
 | Negative_Aux_Ports | Refdes and its pins to set up the negative side of a port. Use "," to separate the refdes and its multiple pins. Aux ports of the obtained S-/Z-parameters may be shorted or open during post-processing based on the specified "Spec_Type". |
+| Op_Freq | Optional. Specify the simulation frequency per "Unique_Key". Once defined, it takes the highest priority. The format is "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
+| Op_DiffPair | Optional. Specify the differential pairs for LSIO and HSIO "ExtractionType". |
 
 Ports are indexed top to bottom of main ports and then top to bottom of auxiliary ports.
 
@@ -88,8 +90,7 @@ Port10: +(U9, 8) -(U9, 4)
 
 | Key Words | Descriptions |
 | --------- | ------------ |
-| Spec_Type | Sddr5: default simulation frequency ranges from 1 MHz to 15 GHz with a step size of 100 MHz. The solution frequency is set to 5 GHz.
-Spcie6: default simulation frequency ranges from 1 MHz to 50 GHz with a step size of 100 MHz. The solution frequency is set to 16 GHz. |
+| Spec_Type | Sddr5: default simulation frequency ranges from 1 MHz to 15 GHz with a step size of 100 MHz. The solution frequency is set to 5 GHz. <br> Spcie6: default simulation frequency ranges from 1 MHz to 50 GHz with a step size of 100 MHz. The solution frequency is set to 16 GHz. |
 | Positive_Nets | Each row lists all positive nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
 |Negative_Nets | Each row lists all negative nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
 | Positive_Main_Ports | RefDes only |
@@ -134,13 +135,15 @@ An example is shown below.
 Only one file called special_settings is needed. The keywords in this sheet is explained below.
 | Setting_key| Setting_value | Descriptions |
 | ---------- | ------------- | ------------ |
-| ExtractionTool | Sigrity | Plan to support ANSYS in the future |
-| ExtractionType | PDN/HSIO/LSIO/DCR |  |
-| DesignType | PCB/PKG | This affects some tool settings like mesh resolution etc. |
-| ProjectName | Any name works | But preferably to be the same as the project folder name. |
-| GrowTopSolder | Refdes on top layer, solder height in mm, solder radius in mm | Only one refdes is allowed. |
-| GrowTopSolder | Refdes on top layer, solder height in mm, solder radius in mm | Only one refdes is allowed. |
-| FEMPortSolder | Refdes1, solder height in mm, solder radius in mm; Refdes2, solder height in mm, solder radius in mm ... |  |
-| RefDesOffsetNodes | Refdes1, node offset in mm; Refdes2, node offset in mm ... |  |
-| BOM | Use '\n', ',', or ';' to separate refdes | BOM lists all stuffed components. Those not included components are DNSed and should be disabled during sims. |
+| ExtractionTool | Sigrity | Mandatory. Plan to support ANSYS in the future |
+| ExtractionType | PDN/HSIO/LSIO/DCR | Mandatory. |
+| DesignType | PCB/PKG | Mandatory. This affects some tool settings like mesh resolution etc. |
+| ProjectName | Any name works | Mandatory. But preferably to be the same as the project folder name. |
+| GrowTopSolder | Refdes on top layer, solder height in mm, solder radius in mm | Optional. Only one refdes is allowed. |
+| GrowTopSolder | Refdes on top layer, solder height in mm, solder radius in mm | Optional. Only one refdes is allowed. |
+| FEMPortSolder | Refdes1, solder height in mm, solder radius in mm; Refdes2, solder height in mm, solder radius in mm ... | Optional. Only for HSIO extraction. |
+| RefDesOffsetNodes | Refdes1, node offset in mm; Refdes2, node offset in mm ... | Optional. It lists the RefDes whose nodes shall be offset in mm. |
+| BOM | Use '\n', ',', or ';' to separate refdes | Optional. BOM lists all stuffed components. Those not included components are DNSed and should be disabled during sims. |
+| GlobalFreq | FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL | Optional. Specify the simulation frequency globally. Once defined, it takes the 2nd priority, i.e. it works only when "Op_Freq" is not defined per "Unique_Key". The format is "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
+
 # Simulation Output
