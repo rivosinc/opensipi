@@ -73,14 +73,18 @@ class SpdModeler:
         self.materials = info["stackup_info"]["materials"]
         self.surface_roughness = info["stackup_info"]["surfaceroughness"]
         self.settings = info["settings"]
-        self.run_name = info["run_name"]
         self.xtract_type = self.settings["EXTRACTIONTYPE"].upper()
         self.design_type = self.settings["DESIGNTYPE"].upper()
-        if "GLOBALFREQ" not in self.settings:
-            self.GLOBALFREQ = []
-        else:
-            freq_tmp = striped_str2list(self.settings["GLOBALFREQ"], ",")
-            self.GLOBALFREQ = rm_list_item(freq_tmp, "")
+        self.solder_keys = ["GROWTOPSOLDER", "GROWBOTSOLDER"]
+        # define optional keywords
+        self.optional_key_list = self.solder_keys + [
+            "GLOBALFREQ",
+            "BOM",
+            "REFDESOFFSETNODES",
+        ]
+        for op_key in self.optional_key_list:
+            self._init_optional_setting_key(op_key)
+        self.run_name = info["run_name"]
         self.tool_config_dir = info["tool_config_dir"]
         self.dsn_dir = info["dsn_dir"]
         self.dsn_name = info["dsn_name"]
@@ -120,11 +124,8 @@ class SpdModeler:
         self.SPD_DONE_FILENAME = "spd.done"
         self.netinfo_dir = self.loc_dsn_dir + "all_nets.info"
         self.compinfo_dir = self.loc_dsn_dir + "all_comps.info"
-        self.refdes_offset_keys = "REFDESOFFSETNODES"
-        self.bom_keys = "BOM"
         self.bom_tcl_dir = self.loc_script_dir + "bom.tcl"
         self.PROC_COMMON_TCL_DIR = self.template_dir + "proc_common.tcl"
-        self.solder_keys = ["GROWTOPSOLDER", "GROWBOTSOLDER"]
         self.solder_ext = "_solder"
         self.solder_refdes = self.__get_solder_refdes()
         self.CONNECTIVITY = self.__get_connectivity()
@@ -208,11 +209,10 @@ class SpdModeler:
         """
         if not os.path.exists(self.bom_tcl_dir):
             bom_lines = []
-            if self.bom_keys in self.settings:
-                bom_info = self.settings[self.bom_keys]
-                if bom_info != "":
-                    refdes = split_str_by_guess(bom_info)
-                    bom_lines = [(item + " 0") for item in refdes]
+            bom_info = self.settings["BOM"]
+            if bom_info != "":
+                refdes = split_str_by_guess(bom_info)
+                bom_lines = [(item + " 0") for item in refdes]
             if bom_lines:
                 bom_tcl = "set bom [ dict create " + " ".join(bom_lines) + " ]"
             else:
@@ -341,14 +341,13 @@ class SpdModeler:
     def __get_refdes_array_for_offset_nodes(self):
         """Get refdes array with refdes and offset info."""
         refdes_line = []
-        if self.refdes_offset_keys in self.settings:
-            refdes_info = self.settings[self.refdes_offset_keys]
-            if refdes_info != "":
-                refdes_lists = str2listoflist(refdes_info, ";", ",")
-                for refdes in refdes_lists:
-                    # unit conversion
-                    offset_val_in_m = str(float(refdes[1]) * 1e-3)
-                    refdes_line.append('"' + refdes[0] + " " + offset_val_in_m + '"')
+        refdes_info = self.settings["REFDESOFFSETNODES"]
+        if refdes_info != "":
+            refdes_lists = str2listoflist(refdes_info, ";", ",")
+            for refdes in refdes_lists:
+                # unit conversion
+                offset_val_in_m = str(float(refdes[1]) * 1e-3)
+                refdes_line.append('"' + refdes[0] + " " + offset_val_in_m + '"')
         return "\n".join(refdes_line)
 
     def __get_connectivity(self):
@@ -412,6 +411,12 @@ class SpdModeler:
         refdes = tmp_list[0]
         pins = tmp_list[1:]
         return refdes, pins
+
+    def _init_optional_setting_key(self, op_key):
+        """Initialize optional setting_key if it's not defined yet."""
+
+        if op_key not in self.settings:
+            self.settings[op_key] = ""
 
 
 class PowersiPdnModeler(SpdModeler):
@@ -585,16 +590,22 @@ class PowersiPdnModeler(SpdModeler):
 
     def _def_freq_list(self, info, spec_type):
         """define freq list."""
-        freq_list = []
+
+        # local freq
         if self.OPFREQ not in info[0]:
             local_freq = []
         else:
             local_freq = self._get_unique_items_in_col(info, self.OPFREQ)
+        # global freq
+        freq_tmp = striped_str2list(self.settings["GLOBALFREQ"], ",")
+        global_freq = rm_list_item(freq_tmp, "")
+        # output
+        freq_list = []
         if local_freq:  # not empty list
             freq_list = local_freq
         else:
-            if self.GLOBALFREQ:  # not empty list
-                freq_list = self.GLOBALFREQ
+            if global_freq:  # not empty list
+                freq_list = global_freq
             else:
                 freq_list = self._set_freq_by_spectype(spec_type)
         return freq_list
@@ -971,7 +982,14 @@ class ClarityModeler(PowersiIOModeler):
         self.DF_ANTIPAD = self.sig_config_dict["DEFAULT_ANTIPAD"]
         self.BOT_LAYER_INDEX = 1
         self.TOP_LAYER_INDEX = len(self.stackup) - 3
-        self.FEM_PORT_SOLDER = str2dict(self.settings["FEMPORTSOLDER"], ";", ",")
+        # define optional keywords
+        self.optional_key_list.extend(
+            [
+                "FEMPORTSOLDER",
+            ]
+        )
+        for op_key in self.optional_key_list:
+            self._init_optional_setting_key(op_key)
         self.TEMP_REORDER_PORTS_TCL = "temp_reorder_ports.tcl"
         self.TEMP_MULTITERM_CKT_TCL = "temp_multiterm_ckt.tcl"
         self.TCL_REORDER_PORTS = txtfile_rd(self.template_dir + self.TEMP_REORDER_PORTS_TCL)
@@ -1046,11 +1064,12 @@ class ClarityModeler(PowersiIOModeler):
 
     def __set_fem_port(self, comp):
         """set up FEM port using a component"""
-        if comp in self.FEM_PORT_SOLDER:
+        fem_port_solder = str2dict(self.settings["FEMPORTSOLDER"], ";", ",")
+        if comp in fem_port_solder:
             # mm to m
-            SBH = str(float(self.FEM_PORT_SOLDER[comp][0]) * 1e-3)
+            SBH = str(float(fem_port_solder[comp][0]) * 1e-3)
             # mm to m and radius to diameter
-            SBD = str(float(self.FEM_PORT_SOLDER[comp][1]) * 1e-3 * 2)
+            SBD = str(float(fem_port_solder[comp][1]) * 1e-3 * 2)
             lines = self.TCL_PORT_FEM
             lines = lines.replace("SBD", SBD)
         else:
