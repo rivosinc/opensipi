@@ -114,6 +114,7 @@ class SpdModeler:
         self.NEGAP = SIM_INPUT_COL_TITLE[8]
         self.OPFREQ = SIM_INPUT_COL_TITLE[9]
         self.OPDIFFPAIR = SIM_INPUT_COL_TITLE[10]
+        self.OPDISALLCAPS = SIM_INPUT_COL_TITLE[11]
         self.MAT_CMX = "materials.cmx"
         self.TEMP_MAT = "temp_materials.cmx"
         self.STACKUP_CSV = "stackup.csv"
@@ -582,6 +583,8 @@ class PowersiPdnModeler(SpdModeler):
             ctnt.append(self._turn_off_dns_ckt())
             # freq range
             ctnt.append(self._set_freq_range(freq_list))
+            # config all enabled caps
+            ctnt.append(self._config_all_enabled_caps(info))
             # create the run key tcl
             txtfile_wr(self.run_key_dir + filename, "".join(ctnt))
             self.lg.debug(filename + " is created!")
@@ -787,6 +790,22 @@ class PowersiPdnModeler(SpdModeler):
             line = line.replace("FREQ_STEP", str(freq_list[2]))
         return line_header + line
 
+    def _config_all_enabled_caps(self, info):
+        """Configurate all enabled caps, on or off."""
+        if self.OPDISALLCAPS not in info[0]:
+            dis_allcaps = False
+        else:
+            discaps_list = self._get_unique_items_in_col(info, self.OPDISALLCAPS)
+            if discaps_list:
+                dis_allcaps = True
+            else:
+                dis_allcaps = False
+        if dis_allcaps:
+            line = "\n# turn off all enabled caps." + "\nturn_off_all_enabled_caps\n"
+        else:
+            line = ""
+        return line
+
     def _get_unique_items_in_col(self, data, col):
         """get unique non-empty item names for the whole column"""
         merged_nets = []
@@ -843,6 +862,8 @@ class PowersiIOModeler(PowersiPdnModeler):
             ctnt.append(self._turn_off_dns_ckt())
             # freq range
             ctnt.append(self._set_freq_range(freq_list))
+            # config all enabled caps
+            ctnt.append(self._config_all_enabled_caps(info))
             # create the run key tcl
             txtfile_wr(self.run_key_dir + filename, "".join(ctnt))
             self.lg.debug(filename + " is created!")
@@ -1033,6 +1054,8 @@ class ClarityModeler(PowersiIOModeler):
             ctnt.append(self._turn_off_dns_ckt())
             # freq range
             ctnt.append(self._set_freq_range(freq_list))
+            # config all enabled caps
+            ctnt.append(self._config_all_enabled_caps(info))
             # set up compute resources
             ctnt.append("\n# set up compute resources\n")
             ctnt.append(self.TCL_COMPUTE_RESOURCE.replace("CORENUM", str(self.CORE_NUM)))

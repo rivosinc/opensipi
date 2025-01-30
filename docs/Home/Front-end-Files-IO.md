@@ -28,6 +28,7 @@ These files contains all necessary information needed to set up simulations and 
 | Negative_Aux_Ports | Refdes and its pins to set up the negative side of a port. Use "," to separate the refdes and its multiple pins. Aux ports of the obtained S-/Z-parameters may be shorted or open during post-processing based on the specified "Spec_Type". |
 | Op_Freq | Optional. Specify the simulation frequency per "Unique_Key". Once defined, it takes the highest priority. The format is "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
 | Op_DiffPair | Optional. Specify the differential pairs for LSIO and HSIO "ExtractionType". |
+| Op_DisAllCaps | Optional. Cap models are automatically included in extractions without specifying any characters for this keyword. By providing any non-empty characters for this keyword per "Unique_Key", caps are disabled for simulations. |
 
 Ports are indexed top to bottom of main ports and then top to bottom of auxiliary ports.
 
