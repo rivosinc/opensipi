@@ -115,6 +115,13 @@ proc create_new_ckt {refdes model_name node_grp} {
 }
 
 
+# turn off all enabled caps
+proc turn_off_all_enabled_caps {} {
+    set good_caps [sigrity::query -CktInstance -option {modeltype(C) type(Good)}]
+    eval "sigrity::update circuit -manual {disable} $good_caps"
+}
+
+
 # split a string by a substring
 proc wsplit {rawstr substr} {
   split [string map [list $substr \0] $rawstr] \0
