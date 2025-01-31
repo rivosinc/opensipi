@@ -51,6 +51,8 @@ ODB++: .tgz, .zip, .gz, .z, .tar, .7z
 
 MCM: .mcm
 
+SPD: .spd (only works when the ExtractionTools is set to "Sigrity")
+
 **Example**:
 
 ```python
