@@ -88,6 +88,7 @@ class SpdModeler:
         self.tool_config_dir = info["tool_config_dir"]
         self.dsn_dir = info["dsn_dir"]
         self.dsn_name = info["dsn_name"]
+        self.loc_dsn_raw = info["loc_dsn_raw"]
         self.loc_dsn_dir = info["loc_dsn_dir"]
         self.loc_script_dir = info["loc_script_dir"]
         self.template_dir = info["template_dir"]
@@ -230,7 +231,7 @@ class SpdModeler:
             # read in and revise the tcl template
             temp_tcl = txtfile_rd(self.template_dir + self.TEMP_PARENT_SPD)
             temp_tcl = temp_tcl.replace("PROC_COMMON_TCL_DIR", self.PROC_COMMON_TCL_DIR)
-            temp_tcl = temp_tcl.replace("DSN_DIR", self.loc_dsn_dir + self.dsn_name)
+            temp_tcl = temp_tcl.replace("DSN_DIR", self.loc_dsn_dir + self.loc_dsn_raw)
             temp_tcl = temp_tcl.replace("CREATESRM", self.__create_surface_roughness_model_tcl())
             temp_tcl = temp_tcl.replace("MAT_DIR", self.loc_dsn_dir + self.MAT_CMX)
             temp_tcl = temp_tcl.replace("STACKUP_DIR", self.loc_dsn_dir + self.STACKUP_CSV)
