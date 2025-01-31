@@ -242,6 +242,7 @@ class PowersiPdnExec:
     def _model_check(self, mntr_info):
         """check the model port setup, cap model etc."""
         key2sim = self.run_info["run_info_check"]["key2sim"]
+        self.__check_cap_model()
         # create model check spd files for each sim
         if key2sim != []:
             self._run_monitor(mntr_info, self.run_info["run_info_check"])
@@ -303,6 +304,7 @@ class PowersiPdnExec:
                     # check every 2 mins
                     if math.floor((perf_counter() - tic) % 120) == 0:
                         # if solver is not running
+                        # .exe works for both Windows and non-Windows OS
                         if not (
                             (tool + ".exe").upper()
                             in (p.name().upper() for p in psutil.process_iter())
@@ -433,6 +435,7 @@ class PowersiPdnExec:
                 + lic_in_use
                 + " -tcl "
                 + tcl_dir.replace(SL, "/")
+                + " &"
             )
         self.lg.debug("The following command will be run: " + command)
         os.system(command)
@@ -854,16 +857,19 @@ class PowersiPdnExec:
             cap_model_lines[i_key] = tmp_list
 
         warning_msg = [
-            "The following caps don't adopt SPICE type models. "
-            + "Please double check the AMM library!"
+            "Either no caps are found or the following caps don't adopt SPICE type models. "
+            + "Please double check the RefDes where caps must start with C and the AMM library!"
         ]
         for key in cap_model_lines:
             val = cap_model_lines[key]
-            for i_val in val:
-                if i_val[1] <= 10:
-                    warning_msg.append(f"Sim Key: {key} -> {i_val[0]}")
+            if val:
+                for i_val in val:
+                    if i_val[1] <= 10:
+                        warning_msg.append(f"Sim Key: {key} -> {i_val[0]}")
+            else:
+                warning_msg.append(f"Sim Key: {key} -> No caps are found")
         if len(warning_msg) == 1:
-            self.lg.debug("Cap models are checked. " + "All uses SPICE type models! ")
+            self.lg.debug("Cap models are checked. All uses SPICE type models! ")
         else:
             self.lg.debug("\n".join(warning_msg))
 

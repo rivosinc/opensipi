@@ -21,8 +21,9 @@ def sim2report(input_info, mntr_info):
     """
 
     pf = Platform(input_info)
-    pf.drop_dsn_file()
     input_data = pf.read_inputs()
+    xtract_tool = input_data["settings"]["EXTRACTIONTOOL"]
+    pf.drop_dsn_file(xtract_tool)
     sim_exec = pf.parser(input_data)
     result_config_dir, report_config_dir = pf.run(sim_exec, mntr_info)
     report_dir = pf.report(result_config_dir, report_config_dir)
@@ -35,8 +36,9 @@ def sim2report_gsuites(input_info, mntr_info):
     a report.
     """
     pf = Platform(input_info)
-    pf.drop_dsn_file()
     input_data = pf.read_inputs()
+    xtract_tool = input_data["settings"]["EXTRACTIONTOOL"]
+    pf.drop_dsn_file(xtract_tool)
     sim_exec = pf.parser(input_data)
     result_config_dir, report_config_dir = pf.run(sim_exec, mntr_info)
     pf.report(result_config_dir, report_config_dir)

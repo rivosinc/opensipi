@@ -45,6 +45,7 @@ from opensipi.util.common import (
     load_yaml_to_dict,
     make_dir,
     rectify_dir,
+    rm_ext,
     slash_ending,
     unique_list,
 )
@@ -94,6 +95,7 @@ class Platform:
         self.fileout_info = self._get_fileout_info(info)
         # Class properties that will be assigned after running certain methods
         self.DSN_NAME = ""
+        self.LOC_DSN_RAW = ""
 
     # ==========================================================================
     # Class initialization related method
@@ -206,7 +208,7 @@ class Platform:
         input_data = FileIn(self.filein_info).INPUT_DATA
         return input_data
 
-    def drop_dsn_file(self):
+    def drop_dsn_file(self, xtract_tool=None):
         """ask the user to drop the design file in a specific dir"""
         # define variables
         dsn_dir = self.DSN_DIR
@@ -216,6 +218,9 @@ class Platform:
             "odb": [".tgz", ".zip", ".gz", ".z", ".tar", ".7z"],
             "mcm": [".mcm"],
         }
+        # expand legal file types based on extraction tools
+        if xtract_tool.upper() == "SIGRITY":
+            FILE_TYPE["spd"] = [".spd"]
         # place design file in the specified location
         self.lg.debug(
             "Please put the design file to be simulated "
@@ -263,6 +268,10 @@ class Platform:
             tmp_name = tmp_names[int(num) - 1]
         self.lg.debug("The following design file is used for simulations:\n" + tmp_name)
         self.DSN_NAME = tmp_name
+        if tmp_name.upper().endswith(".SPD"):
+            self.LOC_DSN_RAW = rm_ext(tmp_name) + "_raw.spd"
+        else:
+            self.LOC_DSN_RAW = self.DSN_NAME
         # make a local copy of the design file
         self.__mk_local_dsn_copy()
 
@@ -426,6 +435,7 @@ class Platform:
             "tool_config_dir": self.TOOL_CONFIG_DIR,
             "dsn_dir": self.DSN_DIR,
             "dsn_name": self.DSN_NAME,
+            "loc_dsn_raw": self.LOC_DSN_RAW,
             "loc_dsn_dir": self.LOC_DSN_DIR,
             "loc_script_dir": self.LOC_SCRIPT_DIR,
             "sim_dir": self.SIM_DIR,
@@ -473,13 +483,12 @@ class Platform:
     # ==========================================================================
     def __mk_local_dsn_copy(self):
         """make a local copy of the design file"""
-        if not os.path.exists(self.LOC_DSN_DIR + self.DSN_NAME):
-            shutil.copyfile(self.DSN_DIR + self.DSN_NAME, self.LOC_DSN_DIR + self.DSN_NAME)
+        loc_dsn = self.LOC_DSN_DIR + self.LOC_DSN_RAW
+        if not os.path.exists(loc_dsn):
+            shutil.copyfile(self.DSN_DIR + self.DSN_NAME, loc_dsn)
             self.lg.debug("A local copy of the design file is made.")
         else:
-            self.lg.debug(
-                "A local copy of the design file already " + "exists. No action is taken."
-            )
+            self.lg.debug("A local copy of the design file already exists. No action is taken.")
 
     # ==========================================================================
     # process_snp() related methods
