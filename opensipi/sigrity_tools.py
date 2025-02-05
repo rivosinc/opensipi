@@ -196,9 +196,31 @@ class SpdModeler:
     def __mk_stackup_csv(self):
         """make a project specific stackup.csv file if unavailable"""
         if not os.path.exists(self.loc_dsn_dir + self.STACKUP_CSV):
-            stackup_lines = ""
-            for i_line in self.stackup:
-                stackup_lines = stackup_lines + ",".join(i_line) + "\n"
+            stackup_lines = "Layer #,Layer Name,Thickness(mm),Material,Conductivity(S/m),Fill-in Dielectric,Er,Loss Tangent,Shape Name,Trace Width(mm),Trapezoidal Angle(deg),Roughness Upper,Roughness Lower,Roughness Side,Dogleg Hole Threshold(mm),Thermal Hole Threshold(mm),Small Hole Threshold(mm),Via Hole Threshold(mm),Slender Hole Area Threshold(mm^2),Slender Hole Size Threshold(mm),Auto Special Void\n"
+            layer_counts = len(self.stackup["LAYER_NAME"])
+            for i in range(layer_counts):
+                stackup_lines = (
+                    stackup_lines
+                    + ","
+                    + self.stackup["LAYER_NAME"][i]
+                    + ","
+                    + self.stackup["THICKNESS_MM"][i]
+                    + ","
+                    + self.stackup["MATERIAL"][i]
+                    + ","
+                    + ","
+                    + self.stackup["OP_FILLIN_DIELECTRIC"][i]
+                    + ","
+                    + "," * 5
+                    + self.stackup["OP_ROUGHNESS_UPPER"][i]
+                    + ","
+                    + self.stackup["OP_ROUGHNESS_LOWER"][i]
+                    + ","
+                    + self.stackup["OP_ROUGHNESS_SIDE"][i]
+                    + ","
+                    + "," * 6
+                    + "\n"
+                )
             txtfile_wr(self.loc_dsn_dir + self.STACKUP_CSV, stackup_lines)
             self.lg.debug("A stackup file stackup.csv is made.")
         else:

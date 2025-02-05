@@ -23,6 +23,7 @@ from opensipi.util.common import (
     get_str_before_first_symbol,
     get_str_before_last_symbol,
     list_upper,
+    listoflist2dictcol,
     rectify_data,
     rm_list_item,
 )
@@ -211,7 +212,23 @@ class FileIn:
         # check possible exceptions
         if mark_m >= mark_s:
             raise MaterialsMustBeDefinedBeforeStackup()
-        # final output
+        # material info
         stackup_info["materials"] = rec_data[(mark_m + 2) : mark_sr]
-        stackup_info["stackup"] = rec_data[(mark_s + 1) :]
+        # stackup info
+        stackup_list = rec_data[(mark_s + 1) :]
+        stackup_key = [item.upper() for item in stackup_list[0]]
+        stackup_list[0] = stackup_key  # Change keys to upper cases
+        stackup_info["stackup"] = listoflist2dictcol(stackup_list)
+        # add optional keywords in the stackup
+        optional_key_list = [
+            "OP_FILLIN_DIELECTRIC",
+            "OP_ROUGHNESS_UPPER",
+            "OP_ROUGHNESS_LOWER",
+            "OP_ROUGHNESS_SIDE",
+        ]
+        for op_key in optional_key_list:
+            if op_key not in stackup_key:
+                stackup_info["stackup"][op_key] = [
+                    "" for _ in stackup_info["stackup"]["LAYER_NAME"]
+                ]
         return stackup_info

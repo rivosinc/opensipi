@@ -258,6 +258,26 @@ def listoflist2dictofdict(in_list):
     return out_dict
 
 
+def listoflist2dictcol(in_list):
+    """Convert a list of list to a dict.
+    The 1st row/list headers are treated as keys. Each column of the remaining
+    rows/lists forms the value to each key.
+    The input list of list must be of regular shape. Items in the 1st list must
+    be unique.
+    """
+    # To write checks in the future for regular shape and unique header list
+    headers = in_list[0]
+    ctnts = transpose_listoflist(in_list[1:])
+    out_dict = dict(zip(headers, ctnts))
+    return out_dict
+
+
+def transpose_listoflist(in_list):
+    """Transpose the input list of list like a matrix."""
+    out_list = [[row[i] for row in in_list] for i in range(len(in_list[0]))]
+    return out_list
+
+
 def split_str_by_guess(in_str):
     """Split a string by trying the delimiters in the following sequence.
     Assume there is only one type of delimiter. White spaces before and
