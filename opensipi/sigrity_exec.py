@@ -242,7 +242,6 @@ class PowersiPdnExec:
     def _model_check(self, mntr_info):
         """check the model port setup, cap model etc."""
         key2sim = self.run_info["run_info_check"]["key2sim"]
-        self.__check_cap_model()
         # create model check spd files for each sim
         if key2sim != []:
             self._run_monitor(mntr_info, self.run_info["run_info_check"])
