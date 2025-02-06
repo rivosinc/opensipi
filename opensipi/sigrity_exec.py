@@ -856,17 +856,22 @@ class PowersiPdnExec:
             cap_model_lines[i_key] = tmp_list
 
         warning_msg = [
-            "Either no caps are found or the following caps don't adopt SPICE type models. "
-            + "Please double check the RefDes where caps must start with C and the AMM library!"
+            "Cap model checks.\n"
+            + "Three scenarios: no caps found; no models found; or no SPICE type models found.\n"
+            + "If caps' RefDes doesn't start with C, please use CapRefDes to clarify that!"
         ]
         for key in cap_model_lines:
             val = cap_model_lines[key]
             if val:
                 for i_val in val:
-                    if i_val[1] <= 10:
-                        warning_msg.append(f"Sim Key: {key} -> {i_val[0]}")
+                    if i_val[1] == 1:
+                        warning_msg.append(f"Sim Key: {key} -> {i_val[0]} -> No models found")
+                    elif i_val[1] <= 10:
+                        warning_msg.append(
+                            f"Sim Key: {key} -> {i_val[0]} -> No SPICE type models found"
+                        )
             else:
-                warning_msg.append(f"Sim Key: {key} -> No caps are found")
+                warning_msg.append(f"Sim Key: {key} -> No caps found")
         if len(warning_msg) == 1:
             self.lg.debug("Cap models are checked. All uses SPICE type models! ")
         else:

@@ -81,6 +81,7 @@ class SpdModeler:
             "GLOBALFREQ",
             "BOM",
             "REFDESOFFSETNODES",
+            "CAPREFDES",
         ]
         for op_key in self.optional_key_list:
             self._init_optional_setting_key(op_key)
@@ -116,6 +117,8 @@ class SpdModeler:
         self.OPFREQ = SIM_INPUT_COL_TITLE[9]
         self.OPDIFFPAIR = SIM_INPUT_COL_TITLE[10]
         self.OPDISALLCAPS = SIM_INPUT_COL_TITLE[11]
+        # C is the default starting keyword in the cap RefDes
+        self.CAP_KEY = unique_list(striped_str2list("C," + self.settings["CAPREFDES"].upper(), ","))
         self.MAT_CMX = "materials.cmx"
         self.TEMP_MAT = "temp_materials.cmx"
         self.STACKUP_CSV = "stackup.csv"
@@ -196,7 +199,15 @@ class SpdModeler:
     def __mk_stackup_csv(self):
         """make a project specific stackup.csv file if unavailable"""
         if not os.path.exists(self.loc_dsn_dir + self.STACKUP_CSV):
-            stackup_lines = "Layer #,Layer Name,Thickness(mm),Material,Conductivity(S/m),Fill-in Dielectric,Er,Loss Tangent,Shape Name,Trace Width(mm),Trapezoidal Angle(deg),Roughness Upper,Roughness Lower,Roughness Side,Dogleg Hole Threshold(mm),Thermal Hole Threshold(mm),Small Hole Threshold(mm),Via Hole Threshold(mm),Slender Hole Area Threshold(mm^2),Slender Hole Size Threshold(mm),Auto Special Void\n"
+            stackup_lines = (
+                "Layer #,Layer Name,Thickness(mm),Material,Conductivity(S/m),"
+                + "Fill-in Dielectric,Er,Loss Tangent,Shape Name,Trace Width(mm),"
+                + "Trapezoidal Angle(deg),Roughness Upper,Roughness Lower,Roughness Side,"
+                + "Dogleg Hole Threshold(mm),Thermal Hole Threshold(mm),"
+                + "Small Hole Threshold(mm),Via Hole Threshold(mm),"
+                + "Slender Hole Area Threshold(mm^2),Slender Hole Size Threshold(mm),"
+                + "Auto Special Void\n"
+            )
             layer_counts = len(self.stackup["LAYER_NAME"])
             for i in range(layer_counts):
                 stackup_lines = (
@@ -535,6 +546,7 @@ class PowersiPdnModeler(SpdModeler):
         temp_tcl = temp_tcl.replace("PROC_COMMON_TCL_DIR", self.PROC_COMMON_TCL_DIR)
         temp_tcl = temp_tcl.replace("BOM_TCL_DIR", self.bom_tcl_dir)
         temp_tcl = temp_tcl.replace("SIM_KEY", "\n".join(key2check))
+        temp_tcl = temp_tcl.replace("CAP_KEY", "\n".join(self.CAP_KEY))
         temp_tcl = temp_tcl.replace("SPD_DIR", self.parent_spd_dir)
         temp_tcl = temp_tcl.replace("AMM_DIR", self.sig_lib)
         temp_tcl = temp_tcl.replace("RUN_KEY_DIR", self.run_key_dir.replace(SL, "/"))
@@ -598,6 +610,7 @@ class PowersiPdnModeler(SpdModeler):
             ctnt.append(self.TCL_DIS_ALL_NETS)
             ctnt.append(self._en_nets(net_pos, "PowerNets"))
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
+            ctnt.append(self._pos_nets_list(net_pos))
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # ports
@@ -635,6 +648,11 @@ class PowersiPdnModeler(SpdModeler):
             else:
                 freq_list = self._set_freq_by_spectype(spec_type)
         return freq_list
+
+    def _pos_nets_list(self, net):
+        """Set a list for all positive nets."""
+        ctnt = "set pos_nets {\n" + "\n".join(net) + "\n}\n"
+        return ctnt
 
     def _en_nets(self, net, grp):
         """enable nets and move to a certain group, return string"""
@@ -879,6 +897,7 @@ class PowersiIOModeler(PowersiPdnModeler):
             ctnt.append(self.TCL_DIS_ALL_NETS)
             ctnt.append(self._en_nets(net_pos, "NULL"))  # signal net group
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
+            ctnt.append(self._pos_nets_list(net_pos))
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # dns components
@@ -1065,6 +1084,7 @@ class ClarityModeler(PowersiIOModeler):
             ctnt.append(self.TCL_DIS_ALL_NETS)
             ctnt.append(self._en_nets(net_pos, "NULL"))  # signal net group
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
+            ctnt.append(self._pos_nets_list(net_pos))
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # multi-terminal circuits at bottom
@@ -1282,6 +1302,7 @@ class PowerdcModeler(PowersiPdnModeler):
             ctnt.append(self.TCL_DIS_ALL_NETS)
             ctnt.append(self._en_nets(net_pos, "PowerNets"))
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
+            ctnt.append(self._pos_nets_list(net_pos))
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # create the run key tcl
