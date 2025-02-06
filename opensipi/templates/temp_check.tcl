@@ -4,7 +4,7 @@
 
 # Template created by Yansheng Wang
 # Sep. 14, 2022
-# Last updated on Nov. 17, 2023
+# Last updated on Feb. 5, 2025
 
 source {PROC_COMMON_TCL_DIR}
 source {BOM_TCL_DIR}
@@ -13,6 +13,10 @@ source {BOM_TCL_DIR}
 #==============================================================================
 set run_key_array {
 SIM_KEY
+}
+
+set capkeys {
+CAP_KEY
 }
 
 foreach run_key $run_key_array {
@@ -45,16 +49,33 @@ foreach run_key $run_key_array {
 			append port_info "Ports_" $run_key ".csv"
 			sigrity::export Ports -FileName $port_info {!}
 
+			set refdes_all ""
+			foreach posnet $pos_nets {
+				append refdes_all " " [sigrity::query -cktinstance -option "ConnNet($posnet)"]
+			}
+			set good_comps [sigrity::query -CktInstance -option {type(Good)}]
+
+			set cap_all ""
+			set good_caps ""
+			foreach ckey $capkeys {
+				append cap_all " " [lsearch -all -inline -nocase $refdes_all $ckey*]
+				append good_caps " " [lsearch -all -inline -nocase $good_comps $ckey*]
+			}
+
 			set cap_info ""
+			foreach cap $cap_all {
+				if {$cap in $good_caps} {
+					set cap_details [sigrity::querydetails ckt -name $cap]
+					set cap_model_info [sigrity::querydetails cktModel -name [lindex $cap_details 1]]
+					set cap_model [lindex $cap_model_info 4]
+					append cap_info "$cap,\"$cap_model\","
+				} else {
+					append cap_info "$cap,No Models,"
+				}
+			}
+
 			set cap_csv "SIM_DIR"
 			append cap_csv "Caps_" $run_key ".csv"
-			set good_caps [sigrity::query -CktInstance -option {modeltype(C) type(Good)}]
-			foreach cap $good_caps {
-				set cap_details [sigrity::querydetails ckt -name $cap]
-				set cap_model_info [sigrity::querydetails cktModel -name [lindex $cap_details 1]]
-				set cap_model [lindex $cap_model_info 4]
-				append cap_info "$cap,\"$cap_model\","
-			}
 			set outfile [open $cap_csv w]
 			puts $outfile $cap_info
 			close $outfile

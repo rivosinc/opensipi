@@ -148,5 +148,6 @@ Only one file called special_settings is needed. The keywords in this sheet is e
 | RefDesOffsetNodes | Refdes1, node offset in mm; Refdes2, node offset in mm ... | Optional | It lists the RefDes whose nodes shall be offset in mm. |
 | BOM | Use '\n', ',', or ';' to separate refdes | Optional | BOM lists all stuffed components. Those not included components are DNSed and should be disabled during sims. |
 | GlobalFreq | FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL | Optional | Specify the simulation frequency globally. Once defined, it takes the 2nd priority, i.e. it works only when "Op_Freq" is not defined per "Unique_Key". The format is "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
+| CapRefDes | Use ',' to separate them | Optional | The starting RefDes keywords to indicate capacitors in a design. "C" is the implied default one. |
 
 # Simulation Output
