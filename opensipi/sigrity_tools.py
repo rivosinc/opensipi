@@ -283,7 +283,7 @@ class SpdModeler:
             txtfile_wr(self.parent_spd_tcl_dir, temp_tcl)
             self.lg.debug("mk_parent_spd.tcl is made.")
         else:
-            self.lg.debug("mk_parent_spd.tcl already exists. " + "No action is taken.")
+            self.lg.debug("mk_parent_spd.tcl already exists. No action is taken.")
 
     def __create_surface_roughness_model_tcl(self):
         """generate the tcl to create surface roughness models"""
@@ -474,7 +474,8 @@ class PowersiPdnModeler(SpdModeler):
         + "Rows 1, Cols 1, Layer 'LAYNAME', PNet 'POSNET', NNet 'NEGNET', "
         + "Index NUMBER, Prefix 'Port_', Type '2D Port', IsGroup 0} {!}\n"
     )
-    TCL_PORT_COMP = "sigrity::add port -circuit CKT {!}\
+    TCL_PORT_COMP = "sigrity::update circuit -manual {disable} CKT {!}\
+        \nsigrity::add port -circuit CKT {!}\
         \nset port_info [sigrity::querydetails port -index {SEQ}]\
         \nset port_name [lindex $port_info 0]\
         \nsigrity::update port -name $port_name -NewName {Port_NUMBER} {!}\n"
@@ -702,30 +703,23 @@ class PowersiPdnModeler(SpdModeler):
 
     def _set_port(self, port_info, seq, net_pos, net_neg):
         """set up each individual port
-        one of the following port is set up:
-        1. cap port, pos: 1 single comp starting with 'C', neg: empty
-        2. component port, pos: 1 single comp not starting with 'C',
+        one of the following ports is set up:
+        1. component port, pos: 1 single comp not starting with 'C',
            neg: empty
-        3. diff port with Lumped GND pins
-        4. diff port with specific pins
-        5. diff port with pos pins from multiple components, neg pins
+        2. diff port with Lumped GND pins
+        3. diff port with specific pins
+        4. diff port with pos pins from multiple components, neg pins
            from a component with lumped GND pins
-        6. diff port with pos pins from multiple components, neg pins
+        5. diff port with pos pins from multiple components, neg pins
            from multiple components
         """
         port_num = str(seq + 1)  # starting from 1
         port_seq = str(seq)  # starting from 0
         port_lines = "\n# Port_" + port_num + " definition\n"
-        # component or cap port
+        # component or area port
         if port_info[1] == "":
-            # cap port
-            if port_info[0][0].upper() == "C":
-                line_tmp = self.TCL_DIS_CAP + self.TCL_PORT_COMP
-                comp = self._map_refdes_n_pin(port_info[0])[0]
-                line_tmp = line_tmp.replace("CKT", comp)
-                line_tmp = line_tmp.replace("SEQ", port_seq)
             # area port
-            elif port_info[0].upper().startswith("REC") & ("{" in port_info[0]):
+            if port_info[0].upper().startswith("REC") & ("{" in port_info[0]):
                 areaport_info = striped_str2list(re.findall(r"\{(.*?)\}", port_info[0])[0], ",")
                 line_tmp = self.TCL_PORT_AREA
                 line_tmp = line_tmp.replace("LLX", areaport_info[0])
@@ -737,7 +731,7 @@ class PowersiPdnModeler(SpdModeler):
                 line_tmp = line_tmp.replace("NEGNET", net_neg[0])
             # component port
             else:
-                line_tmp = self.TCL_PORT_COMP
+                line_tmp = self.TCL_DIS_CAP + self.TCL_PORT_COMP
                 comp = self._map_refdes_n_pin(port_info[0])[0]
                 line_tmp = line_tmp.replace("CKT", comp)
                 line_tmp = line_tmp.replace("SEQ", port_seq)
