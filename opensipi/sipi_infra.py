@@ -62,11 +62,17 @@ class Platform:
         self.INSTALL_ROOT_DIR, self.SCRIPTS_DIR, self.TEMPLATE_DIR = get_dir()
         self.TOOL_CONFIG_DIR = get_root_dir() + "opensipi_config" + SL
         make_dir(self.TOOL_CONFIG_DIR)
+        # file I/O info
+        self.filein_info = self._get_filein_info(info)
+        self.fileout_info = self._get_fileout_info(info)
+        self.input_data = self._read_inputs()
+        xtract_type = self.input_data["settings"]["EXTRACTIONTYPE"].upper()
+
         # get run name through run time
         if "op_run_name" not in info:
-            self.RUN_NAME = get_run_time()
+            self.RUN_NAME = xtract_type + "_" + get_run_time()
         elif info["op_run_name"] == "":
-            self.RUN_NAME = get_run_time()
+            self.RUN_NAME = xtract_type + "_" + get_run_time()
         else:
             self.RUN_NAME = info["op_run_name"]
         # project dir
@@ -90,9 +96,6 @@ class Platform:
         self.lg = setup_logger(log_name, log_header)
         self.lg.debug("opensipi version: " + __version__)
         self.lg.debug("Log file for Run_" + log_time + " is created.")
-        # file I/O info
-        self.filein_info = self._get_filein_info(info)
-        self.fileout_info = self._get_fileout_info(info)
         # Class properties that will be assigned after running certain methods
         self.DSN_NAME = ""
         self.LOC_DSN_RAW = ""
@@ -100,6 +103,11 @@ class Platform:
     # ==========================================================================
     # Class initialization related method
     # ==========================================================================
+    def _read_inputs(self):
+        """read input data based on input_type"""
+        input_data = FileIn(self.filein_info).INPUT_DATA
+        return input_data
+
     def _get_proj_dir(self, info):
         """get the project directory."""
         if "proj_dir" in info:
@@ -203,11 +211,6 @@ class Platform:
     # ==========================================================================
     # Externally available methods
     # ==========================================================================
-    def read_inputs(self):
-        """read input data based on input_type"""
-        input_data = FileIn(self.filein_info).INPUT_DATA
-        return input_data
-
     def drop_dsn_file(self, xtract_tool=None):
         """ask the user to drop the design file in a specific dir"""
         # define variables
