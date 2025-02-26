@@ -34,6 +34,7 @@ from opensipi.util.common import (
 )
 from opensipi.util.exceptions import (
     UndefinedSurfaceRoughnessModelType,
+    WrongAreaPortDef,
     WrongGrowSolderFormat,
 )
 
@@ -720,15 +721,15 @@ class PowersiPdnModeler(SpdModeler):
         if port_info[1] == "":
             # area port
             if port_info[0].upper().startswith("REC") & ("{" in port_info[0]):
-                areaport_info = striped_str2list(re.findall(r"\{(.*?)\}", port_info[0])[0], ",")
+                areaport_info = self._get_areaport_info(port_info[0], net_pos[0], net_neg[0])
                 line_tmp = self.TCL_PORT_AREA
                 line_tmp = line_tmp.replace("LLX", areaport_info[0])
                 line_tmp = line_tmp.replace("LLY", areaport_info[1])
                 line_tmp = line_tmp.replace("URX", areaport_info[2])
                 line_tmp = line_tmp.replace("URY", areaport_info[3])
                 line_tmp = line_tmp.replace("LAYNAME", areaport_info[4])
-                line_tmp = line_tmp.replace("POSNET", net_pos[0])
-                line_tmp = line_tmp.replace("NEGNET", net_neg[0])
+                line_tmp = line_tmp.replace("POSNET", areaport_info[5])
+                line_tmp = line_tmp.replace("NEGNET", areaport_info[6])
             # component port
             else:
                 line_tmp = self.TCL_DIS_CAP + self.TCL_PORT_COMP
@@ -764,6 +765,21 @@ class PowersiPdnModeler(SpdModeler):
                 line_tmp = line_tmp.replace("NUMBER", port_num)
         port_lines = port_lines + line_tmp
         return port_lines
+
+    def _get_areaport_info(self, port_info, net_pos, net_neg):
+        """get the area port info."""
+        areaport_info = striped_str2list(re.findall(r"\{(.*?)\}", port_info)[0], ",")
+        item_counts = len(areaport_info)
+        if item_counts == 5:
+            areaport_info.extend([net_pos])
+            areaport_info.extend([net_neg])
+        elif item_counts == 6:
+            areaport_info.extend([net_neg])
+        elif item_counts == 7:
+            pass
+        else:
+            raise WrongAreaPortDef(self.lg)
+        return areaport_info
 
     def _map_refdes_n_pin(self, raw_port):
         """get the refdes and pins from port input"""
@@ -943,38 +959,69 @@ class PowersiIOModeler(PowersiPdnModeler):
         ctnt.append(self._en_nets(net_neg, "GroundNets"))
         # ports
         port_status = 1
-        if info[self.POSMP] != "":
+        # Main ports
+        mp_pos = info[self.POSMP]
+        mp_neg = info[self.NEGMP]
+        if mp_pos != "":
             port_count = port_count + 1
             port_num = str(port_num_list[0])
             port_status = port_status & (port_count == port_num_list[0])
+            # area port
+            if mp_pos.upper().startswith("REC") & ("{" in mp_pos):
+                areaport_info = self._get_areaport_info(mp_pos, net_pos[0], net_neg[0])
+                line_tmp = self.TCL_PORT_AREA
+                line_tmp = line_tmp.replace("LLX", areaport_info[0])
+                line_tmp = line_tmp.replace("LLY", areaport_info[1])
+                line_tmp = line_tmp.replace("URX", areaport_info[2])
+                line_tmp = line_tmp.replace("URY", areaport_info[3])
+                line_tmp = line_tmp.replace("LAYNAME", areaport_info[4])
+                line_tmp = line_tmp.replace("POSNET", areaport_info[5])
+                line_tmp = line_tmp.replace("NEGNET", areaport_info[6])
+                line_tmp = line_tmp.replace("NUMBER", port_num)
+            # component port
+            else:
+                comp_pos, comp_pin_pos = self._get_refdes_n_pins(mp_pos)
+                comp_neg, comp_pin_neg = self._get_refdes_n_pins(mp_neg)
 
-            comp_pos, comp_pin_pos = self._get_refdes_n_pins(info[self.POSMP])
-            comp_neg, comp_pin_neg = self._get_refdes_n_pins(info[self.NEGMP])
-
-            line_tmp = self.TCL_PORT_DIFF + self.TCL_HOOK_PORT_POS + self.TCL_HOOK_PORT_NEG
-            line_tmp = line_tmp.replace("NUMBER", port_num)
-            line_tmp = line_tmp.replace("NCKT", comp_neg)
-            line_tmp = line_tmp.replace("NNODE", " ".join(comp_pin_neg))
-            line_tmp = line_tmp.replace("PCKT", comp_pos)
-            line_tmp = line_tmp.replace("PNODE", " ".join(comp_pin_pos))
+                line_tmp = self.TCL_PORT_DIFF + self.TCL_HOOK_PORT_POS + self.TCL_HOOK_PORT_NEG
+                line_tmp = line_tmp.replace("NUMBER", port_num)
+                line_tmp = line_tmp.replace("NCKT", comp_neg)
+                line_tmp = line_tmp.replace("NNODE", " ".join(comp_pin_neg))
+                line_tmp = line_tmp.replace("PCKT", comp_pos)
+                line_tmp = line_tmp.replace("PNODE", " ".join(comp_pin_pos))
 
             ctnt.append("# define Port " + port_num + "\n")
             ctnt.append(line_tmp)
-
-        if info[self.POSAP] != "":
+        # Aux ports
+        ap_pos = info[self.POSAP]
+        ap_neg = info[self.NEGAP]
+        if ap_pos != "":
             port_count = port_count + 1
             port_num = str(port_num_list[1])
             port_status = port_status & (port_count == port_num_list[1])
+            # area port
+            if ap_pos.upper().startswith("REC") & ("{" in ap_pos):
+                areaport_info = self._get_areaport_info(ap_pos, net_pos[0], net_neg[0])
+                line_tmp = self.TCL_PORT_AREA
+                line_tmp = line_tmp.replace("LLX", areaport_info[0])
+                line_tmp = line_tmp.replace("LLY", areaport_info[1])
+                line_tmp = line_tmp.replace("URX", areaport_info[2])
+                line_tmp = line_tmp.replace("URY", areaport_info[3])
+                line_tmp = line_tmp.replace("LAYNAME", areaport_info[4])
+                line_tmp = line_tmp.replace("POSNET", areaport_info[5])
+                line_tmp = line_tmp.replace("NEGNET", areaport_info[6])
+                line_tmp = line_tmp.replace("NUMBER", port_num)
+            # component port
+            else:
+                comp_pos, comp_pin_pos = self._get_refdes_n_pins(ap_pos)
+                comp_neg, comp_pin_neg = self._get_refdes_n_pins(ap_neg)
 
-            comp_pos, comp_pin_pos = self._get_refdes_n_pins(info[self.POSAP])
-            comp_neg, comp_pin_neg = self._get_refdes_n_pins(info[self.NEGAP])
-
-            line_tmp = self.TCL_PORT_DIFF + self.TCL_HOOK_PORT_POS + self.TCL_HOOK_PORT_NEG
-            line_tmp = line_tmp.replace("NUMBER", port_num)
-            line_tmp = line_tmp.replace("NCKT", comp_neg)
-            line_tmp = line_tmp.replace("NNODE", " ".join(comp_pin_neg))
-            line_tmp = line_tmp.replace("PCKT", comp_pos)
-            line_tmp = line_tmp.replace("PNODE", " ".join(comp_pin_pos))
+                line_tmp = self.TCL_PORT_DIFF + self.TCL_HOOK_PORT_POS + self.TCL_HOOK_PORT_NEG
+                line_tmp = line_tmp.replace("NUMBER", port_num)
+                line_tmp = line_tmp.replace("NCKT", comp_neg)
+                line_tmp = line_tmp.replace("NNODE", " ".join(comp_pin_neg))
+                line_tmp = line_tmp.replace("PCKT", comp_pos)
+                line_tmp = line_tmp.replace("PNODE", " ".join(comp_pin_pos))
 
             ctnt.append("# define Port " + port_num + "\n")
             ctnt.append(line_tmp)

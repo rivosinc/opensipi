@@ -142,3 +142,10 @@ class NoProjDirDefined(Exception):
 
     def __init__(self):
         print("No proj dir was defined!")
+
+
+class WrongAreaPortDef(Exception):
+    """Raised when area port definition was wrong."""
+
+    def __init__(self, lg):
+        lg.debug("Area port definition was wrong!")
