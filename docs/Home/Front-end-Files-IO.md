@@ -22,7 +22,7 @@ These files contains all necessary information needed to set up simulations and 
 | Spec_Type | Mandatory | It indicates the simulation frequency and the way to post-process simulation data. Only one spec type needs to be assigned at the beginning row of a simulation info. Currently, the available spec type will be introduced in the next section. Note that the indicated simulation frequency takes the lowest priority, i.e. it works only when "Op_Freq" is not defined per "Unique_Key" and "GlobalFreq" is not defined in the "Special_Settings" Tab. |
 | Positive_Nets | Mandatory | Positive nets to be included in the simulation. Use "," to separate multiple nets. |
 | Negative_Nets| Mandatory | Negative nets to be included in the simulation. Use "," to separate multiple nets. |
-| Positive_Main_Ports | Mandatory | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins. Area ports are also supported in PDN extraction: Rec{LLx, LLy, URx, URy, LayerName}. |
+| Positive_Main_Ports | Mandatory | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins. Area ports are also supported in PDN and LSIO extraction: Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. If Net_Pos and Net_neg are not provided, the first net in 'Positive_Nets' and 'Negative_Nets' columns are automatically picked up to define the area port. The net sequence does matter in this situation. |
 | Negative_Main_Ports | Mandatory | Refdes and its pins to set up the negative side of a port. Use "," to separate the refdes and its multiple pins. |
 | Positive_Aux_Ports | Mandatory | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins.  Area ports are also supported in PDN extraction: Rec{LLx, LLy, URx, URy, LayerName}. Aux ports of the obtained S-/Z-parameters may be shorted or open during post-processing based on the specified "Spec_Type". |
 | Negative_Aux_Ports | Mandatory | Refdes and its pins to set up the negative side of a port. Use "," to separate the refdes and its multiple pins. Aux ports of the obtained S-/Z-parameters may be shorted or open during post-processing based on the specified "Spec_Type". |
@@ -49,7 +49,7 @@ In another case with P1V8 power rail, which starts from Pin 2 of PL8 and ends at
 
 ![image](/docs/Figures/input_sheet_PDN.png)
 
-Rectangle area port is also supported for PDN extraction. To define an area port, use the following format "Rec{LLx, LLy, URx, URy, LayerName}" and put it in "Positive_Main_Ports" or "Positive_Aux_Ports", meanwhile leaving its negative counterpart blank. "Rec" is a keyword that cannot be changed. "LLx": x-coordinate of the lower-left corner; "LLy": y-coordinate of the lower-left corner; "URx": x-coordinate of the upper-right corner; "URy": y-coordinate of the upper-right corner; "LayerName": the actual layer name where the area port is defined. Notice the area port is only defined between the FIRST listed positive and negative nets.
+Rectangle area port is also supported for PDN extraction. To define an area port, use the following format "Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}" and put it in "Positive_Main_Ports" or "Positive_Aux_Ports", meanwhile leaving its negative counterpart blank. "Rec" is a keyword that cannot be changed. "LLx": x-coordinate of the lower-left corner; "LLy": y-coordinate of the lower-left corner; "URx": x-coordinate of the upper-right corner; "URy": y-coordinate of the upper-right corner; "LayerName": the actual layer name where the area port is defined; "Net_Pos" and "Net_neg" are optional and are used to specify the single positive and single negative nets for the area port. If "Net_Pos" and "Net_neg" are not provided. The area port is only defined between the FIRST listed positive and negative nets.
 
 - LSIO
 
@@ -58,12 +58,15 @@ Rectangle area port is also supported for PDN extraction. To define an area port
 | Spec_Type | Sls: default simulation frequency ranges from 1 MHz to 5 GHz with a step size of 5 MHz. |
 | Positive_Nets | Each row lists all positive nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
 |Negative_Nets | Each row lists all negative nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
-| Positive_Main_Ports | RefDes, Positive pins |
+| Positive_Main_Ports | RefDes, Positive pins <br> Or area port Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. |
 | Negative_Main_Ports | RefDes, Negative pins |
-| Positive_Aux_Ports | RefDes, Positive pins |
+| Positive_Aux_Ports | RefDes, Positive pins <br> Or area port Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. |
 | Negative_Aux_Ports | RefDes, Negative pins |
 
-Notice the port definition must be "RefDes+Pins" for both positive and negative sides.
+The port definition takes two forms:
+
+1. "RefDes+Pins" for both positive and negative sides.
+2. Area port defined by "Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}", where contents in [] are optional. Put the definition only in the positive side and leave the negative side blank.
 
 The ports are indexed from "Main" to "Aux" and top to bottom. For example, the port sequence in the 2nd test case as shown below, "I2C_PCA9548_SC6", is
 
@@ -88,6 +91,10 @@ Port9: +(U7, 5) -(U7, 4)
 Port10: +(U9, 8) -(U9, 4)
 
 ![image](/docs/Figures/input_sheet_LSIO.png)
+
+Changing the above Port1 and Port3 definitions to area port format, they would look like below.
+Port1: Rec{0.162, 0.0337, 0.167, 0.041, Signal$TOP}
+Port3: Rec{0.171, 0.0775, 0.1726, 0.080, Signal$BOTTOM, I2C_PCA9548_SC6_EMC1412_SCL}
 
 - HSIO
 
