@@ -225,6 +225,7 @@ class FileIn:
             "OP_ROUGHNESS_UPPER",
             "OP_ROUGHNESS_LOWER",
             "OP_ROUGHNESS_SIDE",
+            "OP_TRAPEZOIDAL_ANGLE_DEG",
         ]
         for op_key in optional_key_list:
             if op_key not in stackup_key:
