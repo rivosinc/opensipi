@@ -20,6 +20,7 @@ from opensipi.util.common import (
     expand_home_dir,
     get_cols_out_of_list_of_list,
     get_run_time,
+    intfy_list,
     list_strip,
     load_yaml_to_dict,
     rm_ext,
@@ -118,6 +119,7 @@ class SpdModeler:
         self.OPFREQ = SIM_INPUT_COL_TITLE[9]
         self.OPDIFFPAIR = SIM_INPUT_COL_TITLE[10]
         self.OPDISALLCAPS = SIM_INPUT_COL_TITLE[11]
+        self.OPMIXEDMODETERM = SIM_INPUT_COL_TITLE[12]
         # C is the default starting keyword in the cap RefDes
         self.CAP_KEY = unique_list(striped_str2list("C," + self.settings["CAPREFDES"].upper(), ","))
         self.MAT_CMX = "materials.cmx"
@@ -223,7 +225,9 @@ class SpdModeler:
                     + ","
                     + self.stackup["OP_FILLIN_DIELECTRIC"][i]
                     + ","
-                    + "," * 5
+                    + "," * 4
+                    + self.stackup["OP_TRAPEZOIDAL_ANGLE_DEG"][i]
+                    + ","
                     + self.stackup["OP_ROUGHNESS_UPPER"][i]
                     + ","
                     + self.stackup["OP_ROUGHNESS_LOWER"][i]
@@ -422,9 +426,65 @@ class SpdModeler:
                     il_list = []
                 # RL
                 rl_list = list(range(1, total_port_count + 1))
+                # ?????????????????
+                # To add a integrity check for the input of OP_DiffPair
+                # Mixed-mode
+                il_list_mm = []
+                rl_list_mm = []
+                dp_order_in_se = []
+                if (self.OPDIFFPAIR in temp_list[0]) and (temp_list[0][self.OPDIFFPAIR] != ""):
+                    port_dp = []
+                    for i_list in temp_list:
+                        dp_in = striped_str2list(i_list[self.OPDIFFPAIR], ",")
+                        dp_out = ["_", "_"]
+                        if i_list[self.POSMP]:
+                            dp_out[0] = dp_in[0]
+                            if i_list[self.POSAP]:
+                                dp_out[1] = dp_in[1]
+                        else:
+                            if i_list[self.POSAP]:
+                                dp_out[1] = dp_in[0]
+                        port_dp.extend(dp_out)
+                    port_se = [item for sublist in il_list for item in sublist]
+                    port_mapping = [item for item in list(zip(port_dp, port_se)) if item[0] != "_"]
+                    port_dict_dpkey = dict(port_mapping)
+                    port_mapping_sekey = [
+                        item for item in list(zip(port_se, port_dp)) if item[1] != "_"
+                    ]
+                    port_dict_sekey = dict(port_mapping_sekey)
+                    # dp port order
+                    dp_port_count = int(len(port_mapping) / 2)
+                    for i in range(1, dp_port_count + 1):
+                        dp_order_in_se.extend([port_dict_dpkey["P" + str(i)]])
+                        dp_order_in_se.extend([port_dict_dpkey["N" + str(i)]])
+                    # IL MM
+                    il_mm_str = []
+                    for temp_il_list in il_list:
+                        il_mm_str.extend(
+                            [
+                                port_dict_sekey[temp_il_list[0]][1:]
+                                + ","
+                                + port_dict_sekey[temp_il_list[1]][1:]
+                            ]
+                        )
+                    il_mm_str_list = [item.split(",") for item in unique_list(il_mm_str)]
+                    il_list_mm = [[int(item[0]), int(item[1])] for item in il_mm_str_list]
+                    # RL MM
+                    rl_list_mm = list(range(1, dp_port_count + 1))
+                # mixed mode term
+                term_mm = [100, 25]
+                if (self.OPMIXEDMODETERM in temp_list[0]) and (
+                    temp_list[0][self.OPMIXEDMODETERM] != ""
+                ):
+                    term_mm = intfy_list(striped_str2list(temp_list[0][self.OPMIXEDMODETERM], ","))
+                # output
                 conn_dict[i_key] = {
                     "IL": il_list,
                     "RL": rl_list,
+                    "DP_ORDER_IN_SE": dp_order_in_se,
+                    "TERM_MM": term_mm,
+                    "IL_MM": il_list_mm,
+                    "RL_MM": rl_list_mm,
                 }
         elif self.xtract_type in ["PDN"]:
             for i_key in all_input:

@@ -144,6 +144,12 @@ def unique_list(in_list):
     return out_list
 
 
+def intfy_list(in_list):
+    """Apply int to each item of a list of number string."""
+    out_list = [int(item) for item in in_list]
+    return out_list
+
+
 def get_cols_out_of_list_of_list(in_list, i_col):
     """get the specified columns out of a list of list"""
     out_list = []
