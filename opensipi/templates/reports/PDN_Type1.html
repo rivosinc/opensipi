@@ -48,36 +48,59 @@ SPDX-License-Identifier: Apache-2.0
     </table>
 
     <h2>Results Summary</h2>
+    {% for allkeynames in result_dict.values() %}
     <table class="table">
         <thead>
             <tr>
                 <th>Title</th>
                 <th>DCR (mOhm)</th>
                 <th>L@100MHz (pH)</th>
-                <th>C@10kHz (uF)</th>
+                <th>C@10kHz (nF)</th>
                 <th>Figure</th>
             </tr>
         </thead>
         <tbody>
-            {% for item in result_list %}
+            {% for prockey in allkeynames.values() %}
+            {% for item in prockey.ZOPEN %}
             <tr>
                 <th>{{item[0]}}</th>
-                <td>{{item[1]}}</td>
                 <td>{{item[2]}}</td>
                 <td>{{item[3]}}</td>
+                <td>{{item[4]}}</td>
                 <td><a href=#{{item[0]}}>Fig.{{loop.index}}</a></td>
             </tr>
             {% endfor %}
+            {% for item in prockey.ZSHORT %}
+            <tr>
+                <th>{{item[0]}}</th>
+                <td>{{item[2]}}</td>
+                <td>{{item[3]}}</td>
+                <td>{{item[4]}}</td>
+                <td><a href=#{{item[0]}}>Fig.{{loop.index}}</a></td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
         </tbody>
     </table>
+    {% endfor %}
     <p style="page-break-after: always;">&nbsp;</p>
     <h2>Figures</h2>
-    {% for item in result_list %}
+    {% for allkeynames in result_dict.values() %}
+    {% for prockey in allkeynames.values() %}
+    {% for item in prockey.ZOPEN %}
     <a name={{item[0]}}>
         <p>Fig.{{loop.index}} {{item[0]}}</p>
-    <img class="img-fluid" src="data:image/jpeg;base64, {{item[4]}}" alt="Image">
-    <br>
-    {% endfor %}
+        <img class="img-fluid" src="data:image/jpeg;base64, {{item[1]}}" alt="Image">
+        <br>
+        {% endfor %}
+        {% for item in prockey.ZSHORT %}
+        <a name={{item[0]}}>
+            <p>Fig.{{loop.index}} {{item[0]}}</p>
+            <img class="img-fluid" src="data:image/jpeg;base64, {{item[1]}}" alt="Image">
+            <br>
+            {% endfor %}
+            {% endfor %}
+            {% endfor %}
 </body>
 
 </html>

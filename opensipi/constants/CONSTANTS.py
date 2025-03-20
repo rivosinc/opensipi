@@ -46,3 +46,45 @@ FREQ_RANGE = {
     # linear step [FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL]
     "SPCIE6": [1e6, 50e9, 100e6, 16e9],
 }
+
+
+SPEC_TYPE = {
+    "ZPDN": {
+        "FREQ": [0, 1e9],
+        "POST_PROCESS_KEY": ["ZOPEN", "ZSHORT"],
+    },
+    "ZL": {
+        "FREQ": [0, 1e9],
+        "POST_PROCESS_KEY": ["ZSHORT"],
+    },
+    "SLS": {
+        "FREQ": [1e6, 5e9, 5e6],
+        "POST_PROCESS_KEY": ["IL", "RL"],
+    },
+    "SLS_MM": {
+        "FREQ": [1e6, 5e9, 5e6],
+        "POST_PROCESS_KEY": ["IL", "RL", "IL_MM", "RL_MM"],
+    },
+    "SDDR5": {
+        "FREQ": [1e6, 15e9, 100e6, 5e9],
+        "POST_PROCESS_KEY": ["IL", "RL"],
+    },
+    "SPCIE6": {
+        "FREQ": [1e6, 50e9, 100e6, 16e9],
+        "POST_PROCESS_KEY": ["IL", "RL", "IL_MM", "RL_MM"],
+    },
+}
+
+
+POST_PROCESS_KEY_ORDER_PDN = {
+    "ZOPEN": 0,
+    "ZSHORT": 1,
+}
+
+
+POST_PROCESS_KEY_ORDER_IO = {
+    "IL": 0,
+    "RL": 1,
+    "IL_MM": 2,
+    "RL_MM": 3,
+}

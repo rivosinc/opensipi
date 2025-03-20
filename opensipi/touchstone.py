@@ -5,10 +5,10 @@
 """
 Author: yanshengw@
 Created on Nov. 1, 2022
-Last updated on Nov. 1, 2022
+Last updated on Mar. 20, 2025
 
 Description:
-    This module handles touchstone files.
+    This module handles one touchstone file.
 """
 
 
@@ -22,13 +22,6 @@ class TouchStone:
     """"""
 
     def __init__(self, info):
-        # define constants
-        self.All_SPEC_TYPE = [
-            ["Zpdn"],  # 0, No need to short sns port
-            ["Zl"],  # 1, short sns port
-            ["Spcie6", "Sddr5"],  # 2, HSIO
-            ["Sls"],  # 3, LSIO
-        ]
         # define variables
         self.file_dir = info["file_dir"]
         self.key_name = info["key_name"]
@@ -40,36 +33,37 @@ class TouchStone:
         self.short0 = self.__get_short_block()
         self.port_num = self.nw.number_of_ports
 
-    def auto_plot(self):
-        """Automatically select the right way to plot figures based on
-        the spec_type.
-        """
-        output_list = []
-        if self.spec_type in self.All_SPEC_TYPE[0]:
-            output_list = self.plot_zself()
-        elif self.spec_type in self.All_SPEC_TYPE[1]:
-            output_list = self.plot_zself_shortsns()
-        elif self.spec_type in self.All_SPEC_TYPE[2]:
-            temp_list1 = self.plot_il()
-            temp_list2 = self.plot_rl()
-            output_list = [temp_list1, temp_list2]
-        elif self.spec_type in self.All_SPEC_TYPE[3]:
-            temp_list1 = self.plot_il()
-            temp_list2 = self.plot_rl()
-            output_list = [temp_list1, temp_list2]
-        return output_list
+    def auto_process(self):
+        """Automatically process SNP files based on spect_type."""
+        output_dict = {}
+        process_key = self.spec_type["POST_PROCESS_KEY"]
+        for key in process_key:
+            match key:
+                case "ZOPEN":
+                    output_dict["ZOPEN"] = self.plot_zself(key)
+                case "ZSHORT":
+                    output_dict["ZSHORT"] = self.plot_zself_shortsns(key)
+                case "IL":
+                    output_dict["IL"] = self.plot_il()
+                case "RL":
+                    output_dict["RL"] = self.plot_rl()
+        return output_dict
 
-    def plot_zself(self):
+    def plot_zself(self, prockey=None):
         """Use connectivity list to determine Zin plot. Leave the sense ports
         floating and plot the self Zs for the rest ports.
         """
         output_list = []
+        if prockey:
+            proc_key_name = "__" + prockey + "_"
+        else:
+            proc_key_name = ""
         last_plot_port_index = len(self.conn_dict["ZIN"])  # starting from 1
         nw = self.nw
         for i_port in range(last_plot_port_index):  # starting from 0
             zself = nw.z_mag[:, i_port, i_port]
             fig_data = [[self.f, zself]]
-            fig_title = self.key_name + "_Port" + str(i_port + 1)
+            fig_title = self.key_name + proc_key_name + "_Port" + str(i_port + 1)
             fig_dir = self.plt_dir + fig_title + ".png"
             self.plot_zmag(fig_data, fig_title, fig_dir)
             # extract LC
@@ -78,11 +72,15 @@ class TouchStone:
             output_list.append([fig_title, fig_dir, "", f"{l_hf:.2f}", f"{c_lf:.2f}"])
         return output_list
 
-    def plot_zself_shortsns(self):
+    def plot_zself_shortsns(self, prockey=None):
         """Use connectivity list to determine Zin plot. Short the sense ports
         and plot the self Zs for the rest ports.
         """
         output_list = []
+        if prockey:
+            proc_key_name = "__" + prockey + "_"
+        else:
+            proc_key_name = ""
         last_plot_port_index = len(self.conn_dict["ZIN"])  # starting from 1
         short_port_number = self.nw.number_of_ports - last_plot_port_index
         nw_red = self.nw
@@ -96,7 +94,7 @@ class TouchStone:
         for i_port in range(nw_red.number_of_ports):
             zself = nw_red.z_mag[:, i_port, i_port]
             fig_data = [[self.f, zself]]
-            fig_title = self.key_name + "_Port" + str(i_port + 1)
+            fig_title = self.key_name + proc_key_name + "_Port" + str(i_port + 1)
             fig_dir = self.plt_dir + fig_title + ".png"
             self.plot_zmag(fig_data, fig_title, fig_dir)
 
@@ -194,7 +192,7 @@ class TouchStone:
         # extract C@10KHz
         freq_tgt = 1e4
         z_lf, _ = self.__get_z_interp(nw, freq_tgt, i_port, i_port, snp_dir)
-        c_lf = 1 / z_lf / (2 * 3.14 * freq_tgt) * 1e6  # uF
+        c_lf = 1 / z_lf / (2 * 3.14 * freq_tgt) * 1e9  # nF
         # extract L@100MHz
         freq_tgt = 1e8
         z_hf, _ = self.__get_z_interp(nw, freq_tgt, i_port, i_port, snp_dir)

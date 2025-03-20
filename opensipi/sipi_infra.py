@@ -20,7 +20,11 @@ import pdfkit
 from pdfme import build_pdf
 
 from opensipi import __version__
-from opensipi.constants.CONSTANTS import INPUT_FILE_STARTSWITH
+from opensipi.constants.CONSTANTS import (
+    INPUT_FILE_STARTSWITH,
+    POST_PROCESS_KEY_ORDER_IO,
+    POST_PROCESS_KEY_ORDER_PDN,
+)
 from opensipi.file_in import FileIn
 from opensipi.gdrive_io import XtractResults2Drive
 from opensipi.gsheet_io import DCR2GSheet, TS2GSheet
@@ -152,7 +156,7 @@ class Platform:
             gsuites_config = load_yaml_to_dict(self.TOOL_CONFIG_DIR + "config_gsuites.yaml")
             drive_info = {
                 "output_type": output_type,
-                "account_key": gsuites_config["ACCOUNT_KEY_DIR"],
+                "account_key": expand_home_dir(rectify_dir(gsuites_config["ACCOUNT_KEY_DIR"])),
                 "account_type": gsuites_config["ACCOUNT_TYPE"],
                 "root_drive_id": gsuites_config["ROOT_GDRIVE_ID"],
                 "out_sheet_gdrive_id": gsuites_config["OUT_SHEET_GDRIVE_ID"],
@@ -318,11 +322,8 @@ class Platform:
         report_type = report_config["report_type"]
 
         # snp figures
-        output_list = []
         if report_type in ["PDN", "IO"]:
             result_dict = self.process_snp(expand_home_dir(result_config_dir))
-            for key, val in result_dict.items():
-                output_list.extend(val)
         elif report_type in ["DCR"]:
             pass
 
@@ -338,9 +339,9 @@ class Platform:
 
         dir = expand_home_dir(report_config["report_full_path"])
         if report_type == "PDN":
-            self.__gen_pdn_report(pdn_report, summary_list, output_list, dir)
+            self.__gen_pdn_report(pdn_report, summary_list, result_dict, dir)
         elif report_type == "IO":
-            self.__gen_io_report(io_report, summary_list, output_list, dir)
+            self.__gen_io_report(io_report, summary_list, result_dict, dir)
         elif report_type == "DCR":
             pass  # pending to include DCR report
         self.lg.debug("A summary report is created at " + dir)
@@ -354,11 +355,8 @@ class Platform:
         report_type = report_config["report_type"]
 
         # snp figures
-        output_list = []
         if report_type in ["PDN", "IO"]:
             result_dict = self.process_snp(expand_home_dir(result_config_dir))
-            for key, val in result_dict.items():
-                output_list.extend(val)
         elif report_type in ["DCR"]:
             pass
 
@@ -380,9 +378,9 @@ class Platform:
         pdf_dir = expand_home_dir(report_config["report_full_path"])
         html_dir = pdf_dir.replace(".pdf", ".html")
         if report_type == "PDN":
-            self.__gen_pdn_html_report(summary_list, output_list, misc_dict, html_dir)
+            self.__gen_pdn_html_report(summary_list, result_dict, misc_dict, html_dir)
         elif report_type == "IO":
-            self.__gen_io_html_report(summary_list, output_list, misc_dict, html_dir)
+            self.__gen_io_html_report(summary_list, result_dict, misc_dict, html_dir)
         elif report_type == "DCR":
             pass  # pending to include DCR report
         self.convert_html_to_pdf_report(html_dir, pdf_dir)
@@ -500,10 +498,10 @@ class Platform:
         """"""
         plt_list = self._get_plt_list(key, result_config)
         ts_list = TouchStone.from_list(plt_list)
-        output_list = []
+        output_dict = {}
         for ts in ts_list:
-            output_list.extend(ts.auto_plot())
-        return output_list
+            output_dict[ts.key_name] = ts.auto_process()
+        return output_dict
 
     def _get_plt_list(self, key, result_config):
         """Get the plot list out of a given directory."""
@@ -517,16 +515,16 @@ class Platform:
         for i_snp in snp_list:
             file_dir = i_snp
             snp_name = i_snp.replace(snp_dir, "")
-            key_name = snp_name[: snp_name.index("__")]
-            if key_name in checked_keys:
-                spec_type = spectype[key_name]
+            sim_key = snp_name[: snp_name.index("__")]
+            if sim_key in checked_keys:
+                spec_type = spectype[sim_key]
                 temp_dict = {
                     "file_dir": file_dir,
-                    "key_name": key + "__" + key_name,
+                    "key_name": key + "__" + sim_key,
                     "plt_dir": plot_dir,
                     "spec_type": spec_type,
                     "snp_name": snp_name,
-                    "conn_dict": conn[key_name],
+                    "conn_dict": conn[sim_key],
                 }
                 plt_list.append(temp_dict)
                 self.lg.debug(snp_name + " is included for plotting!")
@@ -537,83 +535,87 @@ class Platform:
     # ==========================================================================
     # report() related methods
     # ==========================================================================
-    def __gen_pdn_report(self, pdf_report, summary_list, output_list, dir):
+    def __gen_pdn_report(self, pdf_report, summary_list, result_dict, dir):
         """Generate a PDF report for PDN."""
         pdf_report["sections"][0]["content"][0]["table"].extend(summary_list)
         # table and figures
         i = 1
-        for i_list in output_list:
-            # table
-            pdf_report["sections"][1]["content"][0]["table"].append(
-                [
-                    i_list[0],
-                    i_list[2],
-                    i_list[3],
-                    i_list[4],
-                    {".": "Fig." + str(i), "style": "url", "ref": i_list[0]},
-                ]
-            )
-            # figures
-            image_dict = {
-                "group": [
-                    {".": "Fig." + str(i) + " " + i_list[0], "label": i_list[0]},
-                    {
-                        "image": i_list[1],
-                        "min_height": 100,
-                        "style": {"margin_left": 50, "margin_right": 50},
-                    },
-                ]
-            }
-            pdf_report["sections"][2]["content"].append(image_dict)
-            i += 1
+        for snp_folder, all_key_names in result_dict.items():
+            for key_name, all_results in all_key_names.items():
+                for process_key, result in all_results.items():
+                    index_mod = POST_PROCESS_KEY_ORDER_PDN[process_key]
+                    for i_list in result:
+                        # table
+                        pdf_report["sections"][1]["content"][index_mod]["table"].append(
+                            [
+                                i_list[0],
+                                i_list[2],
+                                i_list[3],
+                                i_list[4],
+                                {".": "Fig." + str(i), "style": "url", "ref": i_list[0]},
+                            ]
+                        )
+                        # figures
+                        image_dict = {
+                            "group": [
+                                {".": "Fig." + str(i) + " " + i_list[0], "label": i_list[0]},
+                                {
+                                    "image": i_list[1],
+                                    "min_height": 100,
+                                    "style": {"margin_left": 50, "margin_right": 50},
+                                },
+                            ]
+                        }
+                        pdf_report["sections"][2]["content"].append(image_dict)
+                        i += 1
         with open(dir, "wb") as f:
             build_pdf(pdf_report, f)
 
-    def __gen_io_report(self, pdf_report, summary_list, output_list, dir):
+    def __gen_io_report(self, pdf_report, summary_list, result_dict, dir):
         """Generate a PDF report for IO."""
         pdf_report["sections"][0]["content"][0]["table"].extend(summary_list)
         # table and figures
         i = 1
-        ctnt_index = 0
-        for sub_list in output_list:
-            for i_list in sub_list:
-                # table
-                index_mod = ctnt_index % 2
-                ctnt_dict = {".": "Fig." + str(i), "style": "url", "ref": i_list[0]}
-                pdf_report["sections"][1]["content"][index_mod]["table"].append(
-                    [i_list[0], "", ctnt_dict]
-                )
-                # figures
-                image_dict = {
-                    "group": [
-                        {".": "Fig." + str(i) + " " + i_list[0], "label": i_list[0]},
-                        {
-                            "image": i_list[1],
-                            "min_height": 100,
-                            "style": {"margin_left": 50, "margin_right": 50},
-                        },
-                    ]
-                }
-                pdf_report["sections"][2]["content"].append(image_dict)
-                i += 1
-            ctnt_index += 1
+        for snp_folder, all_key_names in result_dict.items():
+            for key_name, all_results in all_key_names.items():
+                for process_key, result in all_results.items():
+                    index_mod = POST_PROCESS_KEY_ORDER_IO[process_key]
+                    for i_list in result:
+                        # table
+                        ctnt_dict = {".": "Fig." + str(i), "style": "url", "ref": i_list[0]}
+                        pdf_report["sections"][1]["content"][index_mod]["table"].append(
+                            [i_list[0], "", ctnt_dict]
+                        )
+                        # figures
+                        image_dict = {
+                            "group": [
+                                {".": "Fig." + str(i) + " " + i_list[0], "label": i_list[0]},
+                                {
+                                    "image": i_list[1],
+                                    "min_height": 100,
+                                    "style": {"margin_left": 50, "margin_right": 50},
+                                },
+                            ]
+                        }
+                        pdf_report["sections"][2]["content"].append(image_dict)
+                        i += 1
         with open(dir, "wb") as f:
             build_pdf(pdf_report, f)
 
     def __gen_pdn_html_report(
-        self, summary_list, output_list, misc_dict, dir, pdn_report_temp="PDN_Type1.html"
+        self, summary_list, result_dict, misc_dict, dir, pdn_report_temp="PDN_Type1.html"
     ):
         """Generate a HTML report for PDN."""
         # prepare result list
-        result_list = []
-        for item in output_list:
-            img_str = img2str(item[1])
-            temp = [item[0], item[2], item[3], item[4], img_str]
-            result_list.append(temp)
+        # result_list = []
+        # for item in output_list:
+        #     img_str = img2str(item[1])
+        #     temp = [item[0], item[2], item[3], item[4], img_str]
+        #     result_list.append(temp)
         report_dict = {
             "summary_list": summary_list,
             "logo_img": misc_dict["company_logo"],
-            "result_list": result_list,
+            "result_dict": result_dict,
         }
         template = jinja2.Environment(
             loader=jinja2.FileSystemLoader(self.TEMPLATE_DIR + "reports" + SL),
@@ -624,20 +626,14 @@ class Platform:
             f.write(report_ctnt)
 
     def __gen_io_html_report(
-        self, summary_list, output_list, misc_dict, dir, io_report_temp="IO_Type1.html"
+        self, summary_list, result_dict, misc_dict, dir, io_report_temp="IO_Type1.html"
     ):
         """Generate a HTML report for PDN."""
         # prepare result list
-        result_list = []
-        for ilist in output_list:
-            item = ilist[0]
-            img_str = img2str(item[1])
-            temp = [item[0], "", img_str]
-            result_list.append(temp)
         report_dict = {
             "summary_list": summary_list,
             "logo_img": misc_dict["company_logo"],
-            "result_list": result_list,
+            "result_dict": result_dict,
         }
         template = jinja2.Environment(
             loader=jinja2.FileSystemLoader(self.TEMPLATE_DIR + "reports" + SL),
