@@ -57,8 +57,15 @@ pdn_report = {
                     "style": {"s": 9, "border_width": 0, "margin_left": 30, "margin_right": 30},
                     "fills": [{"pos": "1::2;:", "color": 0.7}],
                     "borders": [{"pos": "h0,1,-1;:", "width": 0.5}],
-                    "table": [["Title", "DCR (mOhm)", "L@100MHz (pH)", "C@10kHz (uF)", "Figure"]],
-                }
+                    "table": [["Title", "DCR (mOhm)", "L@100MHz (pH)", "C@10kHz (nF)", "Figure"]],
+                },
+                {
+                    "widths": [3, 1, 1, 1, 1],
+                    "style": {"s": 9, "border_width": 0, "margin_left": 30, "margin_right": 30},
+                    "fills": [{"pos": "1::2;:", "color": 0.7}],
+                    "borders": [{"pos": "h0,1,-1;:", "width": 0.5}],
+                    "table": [["Title", "DCR (mOhm)", "L@100MHz (pH)", "C@10kHz (nF)", "Figure"]],
+                },
             ],
         },
         {  # 2, figures
