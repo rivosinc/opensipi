@@ -128,6 +128,14 @@ def list_strip(in_list):
     return out_list
 
 
+def lol_numerical_add_list(in_lol, in_list):
+    """Add an offset list to each item of the list of list."""
+    out_lol = []
+    for item in in_lol:
+        out_lol.append([int(x + y) for x, y in zip(item, in_list)])
+    return out_lol
+
+
 def rm_ext(full_name):
     """remove the file extension from a file name"""
     if "." in full_name:
@@ -171,6 +179,14 @@ def get_str_before_last_symbol(in_str, symbol):
     """get the string before the last specific symbol"""
     out_str = symbol.join(in_str.split(symbol)[:-1])
     return out_str
+
+
+def split_str_at_last_symbol(in_str, symbol):
+    """split the string at the last specific symbol"""
+    str_list = in_str.split(symbol)
+    after_symbol_str = str_list[-1]
+    before_symbol_str = symbol.join(str_list[:-1])
+    return before_symbol_str, after_symbol_str
 
 
 def get_str_before_last_n_symbol(in_str, symbol, index):

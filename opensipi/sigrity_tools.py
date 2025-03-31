@@ -426,12 +426,17 @@ class SpdModeler:
                     il_list = []
                 # RL
                 rl_list = list(range(1, total_port_count + 1))
+                # TDR ports
+                tdr_left_ports_list = unique_list([item[0] for item in il_list])
+                tdr_right_ports_list = unique_list([item[1] for item in il_list])
                 # ?????????????????
                 # To add a integrity check for the input of OP_DiffPair
                 # Mixed-mode
                 il_list_mm = []
                 rl_list_mm = []
-                dp_order_in_se = []
+                mm_order_in_se = []
+                tdr_mm_left_ports_list = []
+                tdr_mm_right_ports_list = []
                 if (self.OPDIFFPAIR in temp_list[0]) and (temp_list[0][self.OPDIFFPAIR] != ""):
                     port_dp = []
                     for i_list in temp_list:
@@ -446,7 +451,10 @@ class SpdModeler:
                                 dp_out[1] = dp_in[0]
                         port_dp.extend(dp_out)
                     port_se = [item for sublist in il_list for item in sublist]
-                    port_mapping = [item for item in list(zip(port_dp, port_se)) if item[0] != "_"]
+                    port_se_n1 = [int(item - 1) for item in port_se]
+                    port_mapping = [
+                        item for item in list(zip(port_dp, port_se_n1)) if item[0] != "_"
+                    ]
                     port_dict_dpkey = dict(port_mapping)
                     port_mapping_sekey = [
                         item for item in list(zip(port_se, port_dp)) if item[1] != "_"
@@ -455,8 +463,8 @@ class SpdModeler:
                     # dp port order
                     dp_port_count = int(len(port_mapping) / 2)
                     for i in range(1, dp_port_count + 1):
-                        dp_order_in_se.extend([port_dict_dpkey["P" + str(i)]])
-                        dp_order_in_se.extend([port_dict_dpkey["N" + str(i)]])
+                        mm_order_in_se.extend([port_dict_dpkey["P" + str(i)]])
+                        mm_order_in_se.extend([port_dict_dpkey["N" + str(i)]])
                     # IL MM
                     il_mm_str = []
                     for temp_il_list in il_list:
@@ -471,6 +479,9 @@ class SpdModeler:
                     il_list_mm = [[int(item[0]), int(item[1])] for item in il_mm_str_list]
                     # RL MM
                     rl_list_mm = list(range(1, dp_port_count + 1))
+                    # TDR ports
+                    tdr_mm_left_ports_list = unique_list([item[0] for item in il_list_mm])
+                    tdr_mm_right_ports_list = unique_list([item[1] for item in il_list_mm])
                 # mixed mode term
                 term_mm = [100, 25]
                 if (self.OPMIXEDMODETERM in temp_list[0]) and (
@@ -481,10 +492,12 @@ class SpdModeler:
                 conn_dict[i_key] = {
                     "IL": il_list,
                     "RL": rl_list,
-                    "DP_ORDER_IN_SE": dp_order_in_se,
+                    "MM_ORDER_IN_SE": mm_order_in_se,
                     "TERM_MM": term_mm,
                     "IL_MM": il_list_mm,
                     "RL_MM": rl_list_mm,
+                    "TDR": [tdr_left_ports_list, tdr_right_ports_list],
+                    "TDR_MM": [tdr_mm_left_ports_list, tdr_mm_right_ports_list],
                 }
         elif self.xtract_type in ["PDN"]:
             for i_key in all_input:
