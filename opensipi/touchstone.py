@@ -17,11 +17,20 @@ from math import log10
 import matplotlib.pyplot as plt
 import skrf as rf
 
+from opensipi.util.common import (
+    SL,
+    lol_numerical_add_list,
+    make_dir,
+    split_str_at_last_symbol,
+)
+
 
 class TouchStone:
     """"""
 
     def __init__(self, info):
+        # define constants
+        self.MM_KEY = ["IL_MM", "RL_MM"]
         # define variables
         self.file_dir = info["file_dir"]
         self.key_name = info["key_name"]
@@ -32,6 +41,7 @@ class TouchStone:
         self.f = self.nw.f / 1e9  # GHz
         self.short0 = self.__get_short_block()
         self.port_num = self.nw.number_of_ports
+        self.nw_mm = self.__get_mixedmode_network()
 
     def auto_process(self):
         """Automatically process SNP files based on spect_type."""
@@ -40,13 +50,21 @@ class TouchStone:
         for key in process_key:
             match key:
                 case "ZOPEN":
-                    output_dict["ZOPEN"] = self.plot_zself(key)
+                    output_dict[key] = self.plot_zself(key)
                 case "ZSHORT":
-                    output_dict["ZSHORT"] = self.plot_zself_shortsns(key)
+                    output_dict[key] = self.plot_zself_shortsns(key)
                 case "IL":
-                    output_dict["IL"] = self.plot_il()
+                    output_dict[key] = self.plot_il(self.conn_dict[key], self.nw.s_db, key)
                 case "RL":
-                    output_dict["RL"] = self.plot_rl()
+                    output_dict[key] = self.plot_rl(self.conn_dict[key], self.nw.s_db, key)
+                case "IL_MM":
+                    output_dict[key] = self.plot_il_mm(self.conn_dict[key], self.nw_mm.s_db, key)
+                case "RL_MM":
+                    output_dict[key] = self.plot_rl_mm(self.conn_dict[key], self.nw_mm.s_db, key)
+                case "TDR":
+                    output_dict[key] = self.plot_tdr(self.conn_dict[key], self.nw, key)
+                case "TDR_MM":
+                    output_dict[key] = self.plot_tdr_mm(self.conn_dict[key], self.nw_mm, key)
         return output_dict
 
     def plot_zself(self, prockey=None):
@@ -59,7 +77,7 @@ class TouchStone:
         else:
             proc_key_name = ""
         last_plot_port_index = len(self.conn_dict["ZIN"])  # starting from 1
-        nw = self.nw
+        nw = self.nw.copy()
         for i_port in range(last_plot_port_index):  # starting from 0
             zself = nw.z_mag[:, i_port, i_port]
             fig_data = [[self.f, zself]]
@@ -83,7 +101,7 @@ class TouchStone:
             proc_key_name = ""
         last_plot_port_index = len(self.conn_dict["ZIN"])  # starting from 1
         short_port_number = self.nw.number_of_ports - last_plot_port_index
-        nw_red = self.nw
+        nw_red = self.nw.copy()
         # short all sns ports
         while short_port_number > 0:
             # from 0
@@ -104,33 +122,65 @@ class TouchStone:
             output_list.append([fig_title, fig_dir, f"{r_dc:.2f}", f"{l_hf:.2f}", ""])
         return output_list
 
-    def plot_il(self):
+    def plot_il(self, conn_list, nw_s_db, prockey=None, header="S"):
         """Plot insertion loss based on the connectivity dict."""
+        if prockey:
+            proc_key_name = "__" + prockey + "__" + header
+        else:
+            proc_key_name = "__" + header
         output_list = []
         fig_data = []
-        for i_conn in self.conn_dict["IL"]:
-            sil = self.nw.s_db[:, i_conn[0] - 1, i_conn[1] - 1]
-            label = "Port" + str(i_conn[0]) + "to" + str(i_conn[1])
+        for i_conn in conn_list:
+            sil = nw_s_db[:, i_conn[1] - 1, i_conn[0] - 1]  # freq, output, input
+            label = header + str(i_conn[1]) + str(i_conn[0])
             fig_data.append([self.f, sil, {"label": label}])
-        fig_title = self.key_name + "_IL"
+        fig_title = self.key_name + proc_key_name
         fig_dir = self.plt_dir + fig_title + ".png"
         self.plot_smag(fig_data, fig_title, fig_dir)
         output_list.append([fig_title, fig_dir])
         return output_list
 
-    def plot_rl(self):
+    def plot_rl(self, conn_list, nw_s_db, prockey=None, header="S"):
         """Plot return loss based on the connectivity dict."""
+        if prockey:
+            proc_key_name = "__" + prockey + "__" + header
+        else:
+            proc_key_name = "__" + header
         output_list = []
         fig_data = []
-        for i_conn in self.conn_dict["RL"]:
-            srl = self.nw.s_db[:, i_conn - 1, i_conn - 1]
-            label = "Port" + str(i_conn)
+        for i_conn in conn_list:
+            srl = nw_s_db[:, i_conn - 1, i_conn - 1]
+            label = header + str(i_conn) + str(i_conn)
             fig_data.append([self.f, srl, {"label": label}])
-        fig_title = self.key_name + "_RL"
+        fig_title = self.key_name + proc_key_name
         fig_dir = self.plt_dir + fig_title + ".png"
         self.plot_smag(fig_data, fig_title, fig_dir)
         output_list.append([fig_title, fig_dir])
         return output_list
+
+    def plot_il_mm(self, conn_list, nw_mm_s_db, prockey=None):
+        """Plot mixed-mode insertion loss based on the connectivity dict."""
+        nw_dd, nw_dc, nw_cd, nw_cc = self.__split_mixedmode_network(nw_mm_s_db)
+        out_dict = {}
+        # Diff_Diff
+        out_dict["DD"] = self.plot_il(conn_list, nw_dd, prockey, "SDD")
+        # Comm_Comm
+        out_dict["CC"] = self.plot_il(conn_list, nw_cc, prockey, "SCC")
+        # Diff_Comm: Diff output from Comm input
+        out_dict["DC"] = self.plot_il(conn_list, nw_dc, prockey, "SDC")
+        # Comm_Diff: Comm output from Diff input
+        out_dict["CD"] = self.plot_il(conn_list, nw_cd, prockey, "SCD")
+        return out_dict
+
+    def plot_rl_mm(self, conn_list, nw_mm_s_db, prockey=None):
+        """Plot mixed-mode return loss based on the connectivity dict."""
+        nw_dd, _, _, nw_cc = self.__split_mixedmode_network(nw_mm_s_db)
+        out_dict = {}
+        # Diff_Diff
+        out_dict["DD"] = self.plot_rl(conn_list, nw_dd, prockey, "SDD")
+        # Comm_Comm
+        out_dict["CC"] = self.plot_rl(conn_list, nw_cc, prockey, "SCC")
+        return out_dict
 
     def plot_zmag(self, fig_data, fig_title, fig_dir):
         """Plot Zmag vs. freq (GHz).
@@ -175,6 +225,98 @@ class TouchStone:
         plt.grid(which="minor", linestyle="--")
         plt.savefig(fig_dir)
         plt.close()
+
+    def plot_tdr(self, conn_list, nw_raw, prockey=None, header="SE"):
+        """Plot TDR for given ports."""
+        if prockey:
+            proc_key_name = "__" + prockey + "__" + header
+        else:
+            proc_key_name = "__" + header
+        nw = nw_raw.copy()
+        # DC point extrapolation
+        if nw.f[0] > 0:
+            nw = nw.extrapolate_to_dc(kind="linear")
+        lin_step = int(10e6)
+        lin_freq_list = list(range(0, int(nw.f[-1]) + lin_step, lin_step))
+        nw.resample(lin_freq_list)
+        output_list = []
+        # left ports
+        fig_title_l = self.key_name + proc_key_name + "_Left"
+        fig_dir_l = self.plt_dir + fig_title_l + ".png"
+        self.plot_time_domain(conn_list[0], nw, fig_title_l, fig_dir_l)
+        output_list.append([fig_title_l, fig_dir_l])
+        # right ports
+        fig_title_r = self.key_name + proc_key_name + "_Right"
+        fig_dir_r = self.plt_dir + fig_title_r + ".png"
+        self.plot_time_domain(conn_list[1], nw, fig_title_r, fig_dir_r)
+        output_list.append([fig_title_r, fig_dir_r])
+        return output_list
+
+    def plot_tdr_mm(self, conn_list, nw_raw, prockey=None):
+        """Plot TDR for Mixed-mode ports."""
+        out_dict = {}
+        # Diff_Diff
+        out_dict["DD"] = self.plot_tdr(conn_list, nw_raw, prockey, "DD")
+        # Comm_Comm
+        mm_port_num = int(self.port_num / 2)
+        # ???? a bug to fix
+        conn_list_cc = lol_numerical_add_list(conn_list, [mm_port_num])
+        out_dict["CC"] = self.plot_tdr(conn_list_cc, nw_raw, prockey, "CC")
+        return out_dict
+
+    def plot_time_domain(self, conn_list, fig_data, fig_title, fig_dir):
+        """Plot time domain response."""
+        plt.figure(figsize=(8, 5))
+        for i_conn in conn_list:
+            label = "Port_" + str(i_conn)
+            fig_data.plot_z_time_step(i_conn - 1, i_conn - 1, label=label)
+        plt.title(fig_title)
+        plt.xlabel("Time (ns)")
+        plt.ylabel("Zc (Ohm)")
+        plt.grid(which="major", linestyle="-")
+        plt.grid(which="minor", linestyle="--")
+        plt.savefig(fig_dir)
+        plt.close()
+
+    def convert_snp_se2mm(self):
+        """Convert SNP files from single-ended to mixed-mode Spara."""
+        sedata = self.nw.copy()
+        se_port_index = list(range(self.port_num))
+        mm_port_index = self.conn_dict["MM_ORDER_IN_SE"]
+        sedata.renumber(se_port_index, mm_port_index)
+        sedata.se2gmm(p=int(self.port_num / 2))
+        # save mm snp files
+        se_snp_dir, se_snp_name = split_str_at_last_symbol(self.file_dir, SL)
+        se_snp_dir = se_snp_dir + SL
+        mm_snp_dir = se_snp_dir + "Mixed_Mode" + SL
+        make_dir(mm_snp_dir)
+        file_name, _ = split_str_at_last_symbol(se_snp_name, ".")
+        mm_snp_name = file_name + "_mm"
+        # sedata is actually mmdata
+        sedata.write_touchstone(filename=mm_snp_name, dir=mm_snp_dir, write_z0=True)
+        return sedata
+
+    def __get_mixedmode_network(self):
+        """Get mixedmode network if necessary."""
+        process_key = self.spec_type["POST_PROCESS_KEY"]
+        se2mm = False
+        for key in process_key:
+            if key in self.MM_KEY:
+                se2mm = True
+        if se2mm:
+            mmdata = self.convert_snp_se2mm()
+        else:
+            mmdata = self.nw
+        return mmdata
+
+    def __split_mixedmode_network(self, nw_mm):
+        """Split one mixed-mode network into four sub-networks."""
+        mm_port_num = int(self.port_num / 2)
+        nw_dd = nw_mm[:, 0:mm_port_num, 0:mm_port_num]
+        nw_dc = nw_mm[:, 0:mm_port_num, mm_port_num:]
+        nw_cd = nw_mm[:, mm_port_num:, 0:mm_port_num]
+        nw_cc = nw_mm[:, mm_port_num:, mm_port_num:]
+        return nw_dd, nw_dc, nw_cd, nw_cc
 
     def __get_short_block(self):
         """Get a 1-port short block based on the input touchstone file."""

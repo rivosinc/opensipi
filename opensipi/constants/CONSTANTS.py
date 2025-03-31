@@ -63,7 +63,7 @@ SPEC_TYPE = {
     },
     "SLS_MM": {
         "FREQ": [1e6, 5e9, 5e6],
-        "POST_PROCESS_KEY": ["IL", "RL", "IL_MM", "RL_MM"],
+        "POST_PROCESS_KEY": ["IL", "RL", "TDR", "IL_MM", "RL_MM", "TDR_MM"],
     },
     "SDDR5": {
         "FREQ": [1e6, 15e9, 100e6, 5e9],
@@ -85,6 +85,8 @@ POST_PROCESS_KEY_ORDER_PDN = {
 POST_PROCESS_KEY_ORDER_IO = {
     "IL": 0,
     "RL": 1,
-    "IL_MM": 2,
-    "RL_MM": 3,
+    "TDR": 2,
+    "IL_MM": 3,
+    "RL_MM": 4,
+    "TDR_MM": 5,
 }

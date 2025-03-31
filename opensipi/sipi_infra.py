@@ -580,25 +580,50 @@ class Platform:
             for key_name, all_results in all_key_names.items():
                 for process_key, result in all_results.items():
                     index_mod = POST_PROCESS_KEY_ORDER_IO[process_key]
-                    for i_list in result:
-                        # table
-                        ctnt_dict = {".": "Fig." + str(i), "style": "url", "ref": i_list[0]}
-                        pdf_report["sections"][1]["content"][index_mod]["table"].append(
-                            [i_list[0], "", ctnt_dict]
-                        )
-                        # figures
-                        image_dict = {
-                            "group": [
-                                {".": "Fig." + str(i) + " " + i_list[0], "label": i_list[0]},
-                                {
-                                    "image": i_list[1],
-                                    "min_height": 100,
-                                    "style": {"margin_left": 50, "margin_right": 50},
-                                },
-                            ]
-                        }
-                        pdf_report["sections"][2]["content"].append(image_dict)
-                        i += 1
+                    if process_key in ["IL", "RL", "TDR"]:
+                        for i_list in result:
+                            # table
+                            ctnt_dict = {".": "Fig." + str(i), "style": "url", "ref": i_list[0]}
+                            pdf_report["sections"][1]["content"][index_mod]["table"].append(
+                                [i_list[0], "", ctnt_dict]
+                            )
+                            # figures
+                            image_dict = {
+                                "group": [
+                                    {".": "Fig." + str(i) + " " + i_list[0], "label": i_list[0]},
+                                    {
+                                        "image": i_list[1],
+                                        "min_height": 100,
+                                        "style": {"margin_left": 50, "margin_right": 50},
+                                    },
+                                ]
+                            }
+                            pdf_report["sections"][2]["content"].append(image_dict)
+                            i += 1
+                    elif process_key in ["IL_MM", "RL_MM", "TDR_MM"]:
+                        for mm_type, mm_result in result.items():
+                            for i_list in mm_result:
+                                # table
+                                ctnt_dict = {".": "Fig." + str(i), "style": "url", "ref": i_list[0]}
+                                pdf_report["sections"][1]["content"][index_mod]["table"].append(
+                                    [i_list[0], "", ctnt_dict]
+                                )
+                                # figures
+                                image_dict = {
+                                    "group": [
+                                        {
+                                            ".": "Fig." + str(i) + " " + i_list[0],
+                                            "label": i_list[0],
+                                        },
+                                        {
+                                            "image": i_list[1],
+                                            "min_height": 100,
+                                            "style": {"margin_left": 50, "margin_right": 50},
+                                        },
+                                    ]
+                                }
+                                pdf_report["sections"][2]["content"].append(image_dict)
+                                i += 1
         with open(dir, "wb") as f:
             build_pdf(pdf_report, f)
 

@@ -63,15 +63,49 @@ SPDX-License-Identifier: Apache-2.0
             <tr>
                 <th>{{item[0]}}</th>
                 <td>{{item[2]}}</td>
-                <td><a href=#{{item[0]}}>Fig.{{loop.index}}</a></td>
+                <td><a href=#{{item[0]}}>Fig.</a></td>
             </tr>
             {% endfor %}
             {% for item in prockey.RL %}
             <tr>
                 <th>{{item[0]}}</th>
                 <td>{{item[2]}}</td>
-                <td><a href=#{{item[0]}}>Fig.{{loop.index}}</a></td>
+                <td><a href=#{{item[0]}}>Fig.</a></td>
             </tr>
+            {% endfor %}
+            {% for item in prockey.TDR %}
+            <tr>
+                <th>{{item[0]}}</th>
+                <td>{{item[2]}}</td>
+                <td><a href=#{{item[0]}}>Fig.</a></td>
+            </tr>
+            {% endfor %}
+            {% for mm_val in prockey.IL_MM.values() %}
+            {% for item in mm_val %}
+            <tr>
+                <th>{{item[0]}}</th>
+                <td>{{item[2]}}</td>
+                <td><a href=#{{item[0]}}>Fig.</a></td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+            {% for mm_val in prockey.RL_MM.values() %}
+            {% for item in mm_val %}
+            <tr>
+                <th>{{item[0]}}</th>
+                <td>{{item[2]}}</td>
+                <td><a href=#{{item[0]}}>Fig.</a></td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+            {% for mm_val in prockey.TDR_MM.values() %}
+            {% for item in mm_val %}
+            <tr>
+                <th>{{item[0]}}</th>
+                <td>{{item[2]}}</td>
+                <td><a href=#{{item[0]}}>Fig.</a></td>
+            </tr>
+            {% endfor %}
             {% endfor %}
             {% endfor %}
         </tbody>
@@ -83,18 +117,48 @@ SPDX-License-Identifier: Apache-2.0
     {% for prockey in allkeynames.values() %}
     {% for item in prockey.IL %}
     <a name={{item[0]}}>
-        <p>Fig.{{loop.index}} {{item[0]}}</p>
+        <p>Fig. {{item[0]}}</p>
         <img class="img-fluid" src="data:image/jpeg;base64, {{item[1]}}" alt="Image">
         <br>
         {% endfor %}
         {% for item in prockey.RL %}
         <a name={{item[0]}}>
-            <p>Fig.{{loop.index}} {{item[0]}}</p>
+            <p>Fig. {{item[0]}}</p>
             <img class="img-fluid" src="data:image/jpeg;base64, {{item[1]}}" alt="Image">
             <br>
             {% endfor %}
-            {% endfor %}
-            {% endfor %}
+            {% for item in prockey.TDR %}
+            <a name={{item[0]}}>
+                <p>Fig. {{item[0]}}</p>
+                <img class="img-fluid" src="data:image/jpeg;base64, {{item[1]}}" alt="Image">
+                <br>
+                {% endfor %}
+                {% for mm_val in prockey.IL_MM.values() %}
+                {% for item in mm_val %}
+                <a name={{item[0]}}>
+                    <p>Fig. {{item[0]}}</p>
+                    <img class="img-fluid" src="data:image/jpeg;base64, {{item[1]}}" alt="Image">
+                    <br>
+                    {% endfor %}
+                    {% endfor %}
+                    {% for mm_val in prockey.RL_MM.values() %}
+                    {% for item in mm_val %}
+                    <a name={{item[0]}}>
+                        <p>Fig. {{item[0]}}</p>
+                        <img class="img-fluid" src="data:image/jpeg;base64, {{item[1]}}" alt="Image">
+                        <br>
+                        {% endfor %}
+                        {% endfor %}
+                        {% for mm_val in prockey.TDR_MM.values() %}
+                        {% for item in mm_val %}
+                        <a name={{item[0]}}>
+                            <p>Fig. {{item[0]}}</p>
+                            <img class="img-fluid" src="data:image/jpeg;base64, {{item[1]}}" alt="Image">
+                            <br>
+                            {% endfor %}
+                            {% endfor %}
+                            {% endfor %}
+                            {% endfor %}
 </body>
 
 </html>
