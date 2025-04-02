@@ -14,7 +14,7 @@ Description:
 import os
 import re
 
-from opensipi.constants.CONSTANTS import FREQ_RANGE, SIM_INPUT_COL_TITLE
+from opensipi.constants.CONSTANTS import SIM_INPUT_COL_TITLE
 from opensipi.util.common import (
     SL,
     expand_home_dir,
@@ -75,6 +75,7 @@ class SpdModeler:
         self.materials = info["stackup_info"]["materials"]
         self.surface_roughness = info["stackup_info"]["surfaceroughness"]
         self.settings = info["settings"]
+        self.SPECTYPE_INFO = info["spectype_info"]
         self.xtract_type = self.settings["EXTRACTIONTYPE"].upper()
         self.design_type = self.settings["DESIGNTYPE"].upper()
         self.solder_keys = ["GROWTOPSOLDER", "GROWBOTSOLDER"]
@@ -892,11 +893,7 @@ class PowersiPdnModeler(SpdModeler):
 
     def _set_freq_by_spectype(self, spec_type):
         """determine freq range by spec_type."""
-        freq_list = []
-        if spec_type.upper().startswith("Z"):
-            freq_list = FREQ_RANGE["Z"]
-        else:
-            freq_list = FREQ_RANGE[spec_type.upper()]
+        freq_list = self.SPECTYPE_INFO[spec_type.upper()]["FREQ"]
         return freq_list
 
     def _set_freq_range(self, freq_list):

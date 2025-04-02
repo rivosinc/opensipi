@@ -427,6 +427,7 @@ class Platform:
         model_info = {
             "stackup_info": input_data["stackup_info"],
             "settings": input_data["settings"],
+            "spectype_info": input_data["spectype_info"],
             "sim_input": input_data["sim_input"],
             "all_input": input_data["all_input"],
             "key2check": input_data["key2check"],

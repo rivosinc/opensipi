@@ -19,7 +19,7 @@ from time import perf_counter, sleep
 
 import psutil
 
-from opensipi.constants.CONSTANTS import SIM_INPUT_COL_TITLE, SPEC_TYPE
+from opensipi.constants.CONSTANTS import SIM_INPUT_COL_TITLE
 from opensipi.sigrity_tools import (
     ClarityModeler,
     PowerdcModeler,
@@ -71,6 +71,7 @@ class PowersiPdnExec:
 
         self.proj_name = info["settings"]["PROJECTNAME"]
         self.xtract_tool = info["settings"]["EXTRACTIONTOOL"]
+        self.SPECTYPE_INFO = info["spectype_info"]
         self.tool_config_dir = info["tool_config_dir"]
         self.sim_dir = info["sim_dir"]
         self.result_dir = info["result_dir"]
@@ -926,7 +927,7 @@ class PowersiPdnExec:
         for key_name in all_input:
             tmp_value = all_input[key_name]
             spectype = tmp_value[0][self.SPECTYPE].upper()
-            out_dict[key_name] = SPEC_TYPE[spectype]
+            out_dict[key_name] = self.SPECTYPE_INFO[spectype]
         return out_dict
 
 
