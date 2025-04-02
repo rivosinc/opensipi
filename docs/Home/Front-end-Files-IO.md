@@ -96,6 +96,18 @@ Changing the above Port1 and Port3 definitions to area port format, they would l
 Port1: Rec{0.162, 0.0337, 0.167, 0.041, Signal$TOP}
 Port3: Rec{0.171, 0.0775, 0.1726, 0.080, Signal$BOTTOM, I2C_PCA9548_SC6_EMC1412_SCL}
 
+"Op_DiffPair" uses "P#" and "N#" to indicate the positive and negative pins of a mixed-mode (MM) port#. Port number must start from 1 and be continuous. No mixing of MM and single-ended (SE) ports is allowed. The example in the above picture defines the following MM ports.
+
+MM Port 1: + SE Port 1, - SE Port 2
+
+MM Port 2: + SE Port 3, - SE Port 7
+
+MM Port 3: + SE Port 4, - SE Port 8
+
+MM Port 4: + SE Port 5, - SE Port 9
+
+MM Port 5: + SE Port 6, - SE Port 10
+
 - HSIO
 
 | Key Words | Descriptions |
@@ -174,5 +186,8 @@ Currently supported post-processing keywords are list below.
 | IL_MM | Insertion loss for mixed-mode Spara. |
 | RL_MM | Return loss for mixed-mode Spara. |
 | TDR_MM | Time-domain characteristic impedance plot for mixed-mode Spara. |
+
+An example is shown below.
+![image](/docs/Figures/spec_type_tab.png)
 
 # Simulation Output

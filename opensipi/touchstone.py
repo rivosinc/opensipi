@@ -19,7 +19,7 @@ import skrf as rf
 
 from opensipi.util.common import (
     SL,
-    lol_numerical_add_list,
+    lol_numerical_add_num,
     make_dir,
     split_str_at_last_symbol,
 )
@@ -259,8 +259,7 @@ class TouchStone:
         out_dict["DD"] = self.plot_tdr(conn_list, nw_raw, prockey, "DD")
         # Comm_Comm
         mm_port_num = int(self.port_num / 2)
-        # ???? a bug to fix
-        conn_list_cc = lol_numerical_add_list(conn_list, [mm_port_num])
+        conn_list_cc = lol_numerical_add_num(conn_list, mm_port_num)
         out_dict["CC"] = self.plot_tdr(conn_list_cc, nw_raw, prockey, "CC")
         return out_dict
 
