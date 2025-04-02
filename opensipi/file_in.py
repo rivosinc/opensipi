@@ -13,7 +13,7 @@ Description:
 
 import glob
 
-from opensipi.constants.CONSTANTS import SIM_INPUT_COL_TITLE
+from opensipi.constants.CONSTANTS import SIM_INPUT_COL_TITLE, SPEC_TYPE
 from opensipi.gsheet_io import GsheetIO
 from opensipi.util.common import (
     SL,
@@ -22,10 +22,12 @@ from opensipi.util.common import (
     get_str_after_last_symbol,
     get_str_before_first_symbol,
     get_str_before_last_symbol,
+    intfy_list,
     list_upper,
     listoflist2dictcol,
     rectify_data,
     rm_list_item,
+    striped_str2list,
 )
 from opensipi.util.exceptions import (
     MaterialsMustBeDefinedBeforeStackup,
@@ -41,19 +43,25 @@ class FileIn:
         if self.INPUT_TYPE == "CSV":
             ext = "".join([either_case(ltr) for ltr in self.INPUT_TYPE])
             tgt_query = info["input_dir"] + "*." + ext
-            sim_input, all_input, stackup_info, settings = self._read_input_csv(tgt_query)
+            sim_input, all_input, stackup_info, settings, spectype_info = self._read_input_csv(
+                tgt_query
+            )
         elif self.INPUT_TYPE == "GSHEET":
-            sim_input, all_input, stackup_info, settings = self._read_input_gsheet(info)
+            sim_input, all_input, stackup_info, settings, spectype_info = self._read_input_gsheet(
+                info
+            )
         else:
             sim_input = {}
             all_input = {}
             stackup_info = {}
             settings = {}
+            spectype_info = {}
         self.INPUT_DATA = {
             "sim_input": sim_input,
             "all_input": all_input,
             "stackup_info": stackup_info,
             "settings": settings,
+            "spectype_info": spectype_info,
         }
 
     def _read_input_csv(self, tgt_query):
@@ -64,6 +72,7 @@ class FileIn:
         all_input = {}
         settings = {}
         stackup_info = {}
+        spectype_info = SPEC_TYPE.copy()
         for file in tgt_files:
             file_name = get_str_before_last_symbol(get_str_after_last_symbol(file, SL), ".").upper()
             raw_data = csv2listoflists(file)
@@ -74,11 +83,14 @@ class FileIn:
                 sim_input = {**sim_input, **sim_data}
                 all_input = {**all_input, **all_data}
             # special settings
-            elif file_name.startswith(self.INPUT_FILE_STARTSWITH[1]):
+            elif file_name == self.INPUT_FILE_STARTSWITH[1]:
                 settings = self.__parse_special_settings(raw_data)
             # stackup and materials
-            elif file_name.startswith(self.INPUT_FILE_STARTSWITH[2]):
+            elif file_name == self.INPUT_FILE_STARTSWITH[2]:
                 stackup_info = self.__parse_stackup_info(raw_data)
+            # spec type definitions
+            elif file_name == self.INPUT_FILE_STARTSWITH[3]:
+                spectype_info = self.__parse_spec_type(raw_data)
         if stackup_info is None:
             print(
                 "Warning: No stackup and material is defined. The default "
@@ -86,7 +98,12 @@ class FileIn:
             )
         if settings is None:
             raise NoSpecialSettingsFound()
-        return sim_input, all_input, stackup_info, settings
+        if spectype_info is None:
+            print(
+                "Warning: No spec type is defined. The default "
+                + "ones in the opensipi platform will be used for sims!"
+            )
+        return sim_input, all_input, stackup_info, settings, spectype_info
 
     def _read_input_gsheet(self, info):
         """read input gsheets and parse them accordingly."""
@@ -103,6 +120,7 @@ class FileIn:
         all_input = {}
         settings = {}
         stackup_info = {}
+        spectype_info = SPEC_TYPE.copy()
         for title in wb_title:
             raw_data = sh.worksheet(title).get_all_values()
             file_name = title.upper()
@@ -113,11 +131,14 @@ class FileIn:
                 sim_input = {**sim_input, **sim_data}
                 all_input = {**all_input, **all_data}
             # special settings
-            elif file_name.startswith(self.INPUT_FILE_STARTSWITH[1]):
+            elif file_name == self.INPUT_FILE_STARTSWITH[1]:
                 settings = self.__parse_special_settings(raw_data)
             # stackup and materials
-            elif file_name.startswith(self.INPUT_FILE_STARTSWITH[2]):
+            elif file_name == self.INPUT_FILE_STARTSWITH[2]:
                 stackup_info = self.__parse_stackup_info(raw_data)
+            # spec type definitions
+            elif file_name == self.INPUT_FILE_STARTSWITH[3]:
+                spectype_info = self.__parse_spec_type(raw_data)
         if stackup_info is None:
             print(
                 "Warning: No stackup and material is defined. The default "
@@ -125,7 +146,12 @@ class FileIn:
             )
         if settings is None:
             raise NoSpecialSettingsFound()
-        return sim_input, all_input, stackup_info, settings
+        if spectype_info is None:
+            print(
+                "Warning: No spec type is defined. The default "
+                + "ones in the opensipi platform will be used for sims!"
+            )
+        return sim_input, all_input, stackup_info, settings, spectype_info
 
     def __parse_sim_inputs(self, raw_data, wb_abbr):
         """Prepare the input data in the sim workbook:
@@ -186,6 +212,22 @@ class FileIn:
             ss_value.append(tmp[1])
         settings = dict(zip(ss_key[1:], ss_value[1:]))
         return settings
+
+    def __parse_spec_type(self, raw_data):
+        """Prepare spec types."""
+        # strip white spaces before and after strings in the raw data
+        rec_data = rectify_data(raw_data)
+        header = rec_data[0]
+        sub_key = [header[1].upper(), header[2].upper()]
+        body = rec_data[1:]
+        spectype = SPEC_TYPE.copy()
+        for tmp in body:
+            st_key = tmp[0].upper()
+            spectype[st_key] = {
+                sub_key[0]: intfy_list(striped_str2list(tmp[1], ",")),
+                sub_key[1]: striped_str2list(tmp[2], ","),
+            }
+        return spectype
 
     def __parse_stackup_info(self, raw_data):
         """Prepare material, surface roughness and stackup info."""

@@ -154,7 +154,7 @@ def unique_list(in_list):
 
 def intfy_list(in_list):
     """Apply int to each item of a list of number string."""
-    out_list = [int(item) for item in in_list]
+    out_list = [int(float(item)) for item in in_list]
     return out_list
 
 
