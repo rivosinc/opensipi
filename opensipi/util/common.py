@@ -136,6 +136,14 @@ def lol_numerical_add_list(in_lol, in_list):
     return out_lol
 
 
+def lol_numerical_add_num(in_lol, in_num):
+    """Add an offset number to each item of the list of list."""
+    out_lol = []
+    for item in in_lol:
+        out_lol.append([int(x + in_num) for x in item])
+    return out_lol
+
+
 def rm_ext(full_name):
     """remove the file extension from a file name"""
     if "." in full_name:

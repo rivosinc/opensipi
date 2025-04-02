@@ -225,7 +225,7 @@ class FileIn:
             st_key = tmp[0].upper()
             spectype[st_key] = {
                 sub_key[0]: intfy_list(striped_str2list(tmp[1], ",")),
-                sub_key[1]: striped_str2list(tmp[2], ","),
+                sub_key[1]: striped_str2list(tmp[2].upper(), ","),
             }
         return spectype
 
