@@ -11,8 +11,8 @@ The simulation results are either touchstone (snp) files for S-parameters or csv
 ## File Formats
 Currently only csv files can be read directly by the package. Plan to enable reading Google Sheet directly next step.
 ## Required Sheet Explained
-Three different types of sheets are required as the simulation input files. They are introduced below.
-### Simulation Setup and Post-Processing Info
+Four different types of sheets can be read into the platform as the simulation input files. Among them, three types of files are mandatory and one type is optional. They are introduced below.
+### Simulation Setup and Post-Processing Info (Mandatory)
 These files contains all necessary information needed to set up simulations and post-process simulation results. The files' name starts with "Simx_" where x refers to integers 0, 1, 2 ... The user can have as many Sim sheets as possible. Sim sheets benefit the users to group simulations as desired.
 #### Keyword Explained
 | Key Words | Type | Descriptions |
@@ -130,19 +130,19 @@ A "VRM" is a virtual concept here. It's the location where power rail is shorted
 
 ![image](/docs/Figures/input_sheet_DCR.png)
 
-### Stackup and Materials
-Only one file called stackup_material is needed. The keywords in this sheet is explained below.
+### Stackup and Materials (Mandatory)
+Only one file called "stackup_material" is needed. The keywords in this sheet is explained below.
 | Section Name | Type | Descriptions |
 | ------------ | ---- | ------------ |
 | Materials | Mandatory | The key word "Materials" must be place in Col A. The following row should be "Name", "Type", "Conductivity (S/m)", "Frequency (MHz)", "Dk", and "Df". The sequence is critical here! Materials are defined from the second row after the key word. The material names should not be critical ideally. But I do see some weird issues happened when the solver reading the material info. It's preferred to use names differing from those already existing in the design files. "Type" can only be "Metal" or "Dielectric" |
 | SurfaceRoughness | Optional | The key word "SurfaceRoughness" must be placed in Col A. The following row should be "Name", "Type", "SurfaceRatio/RoughnessFactor", and "SnowballRadius/RMSValue (um)". The sequence is critical here! Surface roughness models are defined from the second row after the key word. The model names are insignificant. The Type has to be one of the three, "Huray", "ModifiedHammerstad", or "ModifiedGroisse". |
-| Stackup | Mandatory | Available keywords are:<br><ul><li>Layer_Name: (mandatory) unique layer names</li><li>Thickness_mm: (mandatory) layer thickness in mm</li><li>Material: (mandatory) matertial names defined in Section "Materials"</li><li>Op_Layer_Number: (optional) layer number for display only</li><li>Op_Fillin_Dielectric: (optional) material names defined in Section "Materials"</li><li>Op_Roughness_Upper: (optional) upper surface roughness defined in Section "SurfaceRoughness"</li><li>Op_Roughness_Lower: (optional) lower surface roughness defined in Section "SurfaceRoughness"</li><li>Op_Roughness_Side: (optional) side surface roughness defined in Section "SurfaceRoughness"</li></ul>|
+| Stackup | Mandatory | Available keywords are:<br><ul><li>Layer_Name: (mandatory) unique layer names</li><li>Thickness_mm: (mandatory) layer thickness in mm</li><li>Material: (mandatory) matertial names defined in Section "Materials"</li><li>Op_Layer_Number: (optional) layer number for display only</li><li>Op_Fillin_Dielectric: (optional) material names defined in Section "Materials"</li><li>Op_Roughness_Upper: (optional) upper surface roughness defined in Section "SurfaceRoughness"</li><li>Op_Roughness_Lower: (optional) lower surface roughness defined in Section "SurfaceRoughness"</li><li>Op_Roughness_Side: (optional) side surface roughness defined in Section "SurfaceRoughness"</li><li>Op_Trapezoidal_Angle_deg: (optional) trapezoidal angle defined for the cross-sectional shape of trace. Omitting a value implies 90 deg.</li></ul>|
 
 An example is shown below.
 ![image](/docs/Figures/stackup_materials.png)
 
-### Special Settings
-Only one file called special_settings is needed. The keywords in this sheet is explained below.
+### Special Settings (Mandatory)
+Only one file called "special_settings" is needed. The keywords in this sheet is explained below.
 | Setting_key| Setting_value | Type | Descriptions |
 | ---------- | ------------- | ---- | ------------ |
 | ExtractionTool | Sigrity | Mandatory | Plan to support ANSYS in the future |
@@ -156,5 +156,23 @@ Only one file called special_settings is needed. The keywords in this sheet is e
 | BOM | Use '\n', ',', or ';' to separate refdes | Optional | BOM lists all stuffed components. Those not included components are DNSed and should be disabled during sims. |
 | GlobalFreq | FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL | Optional | Specify the simulation frequency globally. Once defined, it takes the 2nd priority, i.e. it works only when "Op_Freq" is not defined per "Unique_Key". The format is "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
 | CapRefDes | Use ',' to separate them | Optional | The starting RefDes keywords to indicate capacitors in a design. "C" is the implied default one. |
+
+### Spec Type (Optional)
+If exists, the file called "spec_type" is needed to provide user-defined spec types. The keywords in this sheet is explained below.
+| Name | Descriptions | Format |
+| ---- | ------------ | ------ |
+| Spec_Type | User-defined spec type names. | Any continued string |
+| Freq | Frequency info related to the user-defined spec type. | "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
+| Post_Process_Key | Post-processing info related to the user-defined spec type. It's a list of pre-defined keywords to identify the required post-processing actions. | Use "," to separate pre-defined post-processing keywords. |
+
+Currently supported post-processing keywords are list below.
+| Keyword | Descriptions |
+| ------- | ------------ |
+| IL | Insertion loss for single-ended Spara. |
+| RL | Return loss for single-ended Spara. |
+| TDR | Time-domain characteristic impedance plot for single-ended Spara. |
+| IL_MM | Insertion loss for mixed-mode Spara. |
+| RL_MM | Return loss for mixed-mode Spara. |
+| TDR_MM | Time-domain characteristic impedance plot for mixed-mode Spara. |
 
 # Simulation Output
