@@ -5,7 +5,7 @@
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks.git
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: check-added-large-files
       - id: check-ast
@@ -27,12 +27,12 @@ repos:
         args: [--markdown-linebreak-ext=md]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+    rev: 6.0.1
     hooks:
       - id: isort
 
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 24.4.2
+    rev: 25.1.0
     hooks:
       - id: black
 
@@ -42,23 +42,23 @@ repos:
       - id: flynt
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.16.0
+    rev: v3.19.1
     hooks:
       - id: pyupgrade
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.3.3
+    rev: v3.5.3
     hooks:
       - id: prettier
         types_or: [yaml]
 
   # pull mirror of https://github.com/fsfe/reuse-tool
   - repo: https://github.com/rivosinc/reuse-tool
-    rev: 476d7ad65f5ca59ad6cd7fd0d0e901b4c5cbc076
+    rev: da430ed605e06460b020a75410d62ddb7fc9a616
     hooks:
       - id: reuse
 
   - repo: https://github.com/pycqa/flake8
-    rev: 7.1.0
+    rev: 7.2.0
     hooks:
       - id: flake8
