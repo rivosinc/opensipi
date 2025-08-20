@@ -57,7 +57,7 @@ CORE_NUM: 16
 # Clarity settings
 DEFAULT_SOLDER:
     - 0.1  # solder height in mm
-    - 0.8  # solder diamater to pad size ratio
+    - 0.8  # solder diameter to pad size ratio
 DEFAULT_ANTIPAD: 1.5  # FEM port antipad ratio
 
 # Execution Settings
