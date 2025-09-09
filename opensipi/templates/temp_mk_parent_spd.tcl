@@ -4,7 +4,7 @@
 
 # Template created by Yansheng Wang
 # Sep. 14, 2022
-# Last updated on Nov. 16, 2023
+# Last updated on Sep. 9, 2025
 
 source {PROC_COMMON_TCL_DIR}
 #==============================================================================
@@ -22,6 +22,10 @@ sigrity::import material {MAT_DIR} {!}
 sigrity::import stackup {STACKUP_DIR} {!}
 # import the option from team drive
 sigrity::import option {OPTION_DIR} {!}
+#==============================================================================
+# Global precut of the board
+#==============================================================================
+GLOBALPRECUT
 #==============================================================================
 # Query nets
 #==============================================================================

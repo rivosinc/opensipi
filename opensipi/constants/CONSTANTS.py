@@ -4,7 +4,7 @@
 
 """
 Author: yanshengw@
-Last updated on Mar. 31, 2025
+Last updated on Sep. 9, 2025
 
 Description:
     This module contains constants commonly used by OpenSIPI.
@@ -33,6 +33,7 @@ SIM_INPUT_COL_TITLE = [
     "OP_DIFFPAIR",
     "OP_DISALLCAPS",
     "OP_MIXEDMODETERM",
+    "OP_PRECUT",
 ]
 
 

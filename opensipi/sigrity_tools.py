@@ -4,7 +4,7 @@
 
 """
 Author: yanshengw@
-Last updated on Dec. 14, 2023
+Last updated on Sep. 9, 2025
 
 Description:
     This module contains all Classes used to parse for Cadence Sigrity Tools.
@@ -43,6 +43,10 @@ from opensipi.util.exceptions import (
 class SpdModeler:
     """This class converts a design file to a spd file for later use."""
 
+    TCL_CUTBYAREA = (
+        "sigrity::delete area -LeftPoint {LLX, LLY} -RightPoint {URX, URY} -Outside {!}\n"
+        + "sigrity::process shape {!}\n"
+    )
     TCL_GROW_TOP_SOLDER = (
         "sigrity::import PseudoPCB -ckt REFDES "
         + "-method {SolderBall} -MatchSel {RetainName} -unit {mm} "
@@ -85,6 +89,7 @@ class SpdModeler:
             "BOM",
             "REFDESOFFSETNODES",
             "CAPREFDES",
+            "GLOBALPRECUT",
         ]
         for op_key in self.optional_key_list:
             self._init_optional_setting_key(op_key)
@@ -121,6 +126,7 @@ class SpdModeler:
         self.OPDIFFPAIR = SIM_INPUT_COL_TITLE[10]
         self.OPDISALLCAPS = SIM_INPUT_COL_TITLE[11]
         self.OPMIXEDMODETERM = SIM_INPUT_COL_TITLE[12]
+        self.OPPRECUT = SIM_INPUT_COL_TITLE[13]
         # C is the default starting keyword in the cap RefDes
         self.CAP_KEY = unique_list(striped_str2list("C," + self.settings["CAPREFDES"].upper(), ","))
         self.MAT_CMX = "materials.cmx"
@@ -277,6 +283,7 @@ class SpdModeler:
             temp_tcl = temp_tcl.replace(
                 "OPTION_DIR", expand_home_dir(self.sig_config_dict["SIG_OPTION"])
             )
+            temp_tcl = temp_tcl.replace("GLOBALPRECUT", self.__global_precut())
             temp_tcl = temp_tcl.replace("NETINFO", (self.netinfo_dir).replace(SL, "/"))
             temp_tcl = temp_tcl.replace("COMPINFO", (self.compinfo_dir).replace(SL, "/"))
             temp_tcl = temp_tcl.replace("SPD_DIR", self.parent_spd_dir)
@@ -323,6 +330,19 @@ class SpdModeler:
                 solder = grow_solder.split(",")
                 solder_refdes[solder[0]] = solder[0] + self.solder_ext
         return solder_refdes
+
+    def __global_precut(self):
+        """precut the board globally."""
+        precut_cmd = ""
+        if self.settings["GLOBALPRECUT"] != "":
+            cutbox = striped_str2list(self.settings["GLOBALPRECUT"], ",")
+            cutbox_m = [str(float(item)*1e-3) for item in cutbox]
+            precut_cmd = self.TCL_CUTBYAREA
+            precut_cmd = precut_cmd.replace("LLX", cutbox_m[0])
+            precut_cmd = precut_cmd.replace("LLY", cutbox_m[1])
+            precut_cmd = precut_cmd.replace("URX", cutbox_m[2])
+            precut_cmd = precut_cmd.replace("URY", cutbox_m[3])
+        return precut_cmd
 
     def __grow_solder_tcl(self):
         """generate the tcl to grow solder"""
@@ -687,6 +707,8 @@ class PowersiPdnModeler(SpdModeler):
             ctnt.append(self._en_nets(net_pos, "PowerNets"))
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
             ctnt.append(self._pos_nets_list(net_pos))
+            # precut
+            ctnt.append(self._precut(info))
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # ports
@@ -737,6 +759,23 @@ class PowersiPdnModeler(SpdModeler):
         ctnt = ctnt.replace("GRPNETS", grp)
         return ctnt
 
+    def _precut(self, info):
+        """precut the board per design."""
+        precut_cmd = ""
+        if self.OPPRECUT not in info[0]:
+            local_precut = ""
+        else:
+            local_precut = info[0][self.OPPRECUT]
+        if local_precut != "":
+            cutbox = striped_str2list(local_precut, ",")
+            cutbox_m = [str(float(item)*1e-3) for item in cutbox]
+            precut_cmd = "\n# precut\n" + self.TCL_CUTBYAREA
+            precut_cmd = precut_cmd.replace("LLX", cutbox_m[0])
+            precut_cmd = precut_cmd.replace("LLY", cutbox_m[1])
+            precut_cmd = precut_cmd.replace("URX", cutbox_m[2])
+            precut_cmd = precut_cmd.replace("URY", cutbox_m[3])
+        return precut_cmd
+
     def _cut_shape(self, net_pos, net_neg):
         """automatically cut shape based on selected cut type.
         CONFORMAL: conformal polygon cut shape
@@ -779,8 +818,7 @@ class PowersiPdnModeler(SpdModeler):
     def _set_port(self, port_info, seq, net_pos, net_neg):
         """set up each individual port
         one of the following ports is set up:
-        1. component port, pos: 1 single comp not starting with 'C',
-           neg: empty
+        1. component port, pos: 1 single comp, neg: empty
         2. diff port with Lumped GND pins
         3. diff port with specific pins
         4. diff port with pos pins from multiple components, neg pins
@@ -806,7 +844,7 @@ class PowersiPdnModeler(SpdModeler):
                 line_tmp = line_tmp.replace("NEGNET", areaport_info[6])
             # component port
             else:
-                line_tmp = self.TCL_DIS_CAP + self.TCL_PORT_COMP
+                line_tmp = self.TCL_PORT_COMP
                 comp = self._map_refdes_n_pin(port_info[0])[0]
                 line_tmp = line_tmp.replace("CKT", comp)
                 line_tmp = line_tmp.replace("SEQ", port_seq)
@@ -978,6 +1016,8 @@ class PowersiIOModeler(PowersiPdnModeler):
             ctnt.append(self._en_nets(net_pos, "NULL"))  # signal net group
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
             ctnt.append(self._pos_nets_list(net_pos))
+            # precut
+            ctnt.append(self._precut(info))
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # dns components
@@ -1196,6 +1236,8 @@ class ClarityModeler(PowersiIOModeler):
             ctnt.append(self._en_nets(net_pos, "NULL"))  # signal net group
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
             ctnt.append(self._pos_nets_list(net_pos))
+            # precut
+            ctnt.append(self._precut(info))
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # multi-terminal circuits at bottom
@@ -1414,6 +1456,8 @@ class PowerdcModeler(PowersiPdnModeler):
             ctnt.append(self._en_nets(net_pos, "PowerNets"))
             ctnt.append(self._en_nets(net_neg, "GroundNets"))
             ctnt.append(self._pos_nets_list(net_pos))
+            # precut
+            ctnt.append(self._precut(info))
             # autocut
             ctnt.append(self._cut_shape(net_pos, net_neg))
             # create the run key tcl
