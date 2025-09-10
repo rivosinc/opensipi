@@ -132,7 +132,10 @@ class SpdModeler:
         self.MAT_CMX = "materials.cmx"
         self.TEMP_MAT = "temp_materials.cmx"
         self.STACKUP_CSV = "stackup.csv"
-        self.TEMP_PARENT_SPD = "temp_mk_parent_spd.tcl"
+        if self.loc_dsn_raw.endswith("_raw.spd"):
+            self.TEMP_PARENT_SPD = "temp_mk_parent_spd_from_spd.tcl"
+        else:
+            self.TEMP_PARENT_SPD = "temp_mk_parent_spd.tcl"
         self.MK_PARENT_SPD_TCL = "mk_parent_spd.tcl"
         self.parent_spd_tcl_dir = self.loc_script_dir + self.MK_PARENT_SPD_TCL
         self.parent_spd_dir = self.loc_dsn_dir + rm_ext(self.dsn_name) + ".spd"

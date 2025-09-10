@@ -10,6 +10,16 @@ The simulation results are either touchstone (snp) files for S-parameters or csv
 # Simulation Input
 ## File Formats
 Currently only csv files can be read directly by the package. Plan to enable reading Google Sheet directly next step.
+
+The allowed design file formats are listed below.
+
+| Design Files | Extension | Descriptions |
+| ------------ | --------- | ------------ |
+| brd | .brd | PCB design files exported by Cadence Allegro. |
+| odb | .tgz, .zip, .gz, .z, .tar, .7z | PCB design files in ODB++ format. |
+| mcm | .mcm | PKG design files exported by Cadence APD. |
+| spd | .spd | PCB or PKG simulation files exported by Cadence Sigrity tool sets. This file format is accepted only when "ExtractionTool" is set to "Sigrity" in the Tab "Special_Settings". Notice the spd file will be loaded as is without changing stack-up and materials, and no additional solder growing. |
+
 ## Required Sheet Explained
 Four different types of sheets can be read into the platform as the simulation input files. Among them, three types of files are mandatory and one type is optional. They are introduced below.
 ### Simulation Setup and Post-Processing Info (Mandatory)
@@ -52,17 +62,27 @@ In another case with P1V8 power rail, which starts from Pin 2 of PL8 and ends at
 
 Rectangle area port is also supported for PDN extraction. To define an area port, use the following format "Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}" and put it in "Positive_Main_Ports" or "Positive_Aux_Ports", meanwhile leaving its negative counterpart blank. "Rec" is a keyword that cannot be changed. "LLx": x-coordinate of the lower-left corner; "LLy": y-coordinate of the lower-left corner; "URx": x-coordinate of the upper-right corner; "URy": y-coordinate of the upper-right corner; "LayerName": the actual layer name where the area port is defined; "Net_Pos" and "Net_neg" are optional and are used to specify the single positive and single negative nets for the area port. If "Net_Pos" and "Net_neg" are not provided. The area port is only defined between the FIRST listed positive and negative nets.
 
+| Key Words | Descriptions |
+| --------- | ------------ |
+| Spec_Type | Zpdn: default simulation frequency ranges from 0 to 1 GHz with automatic frequency sweeping. Post-processing Z-para includes open and shorted auxiliary ports. <br> Zl: default simulation frequency ranges from 0 to 1 GHz with automatic frequency sweeping. Post-processing Z-para includes shorted auxiliary ports. |
+| Positive_Nets | The first row lists all positive nets that are included in the extraction. Use "," to separate multiple nets. |
+| Negative_Nets | The first row lists all negative nets that are included in the extraction. Use "," to separate multiple nets. |
+| Positive_Main_Ports | Diff port: RefDes0, Positive pins[; RefDes1, Positive pins; ...], where contents in [] are optional. <br> Component port: RefDes <br> Area port: Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. |
+| Negative_Main_Ports | Diff port: RefDes0 or 2, Negative pins or "LUMPED"[; RefDes3, Negative pins; ...] <br> Component port: Blank <br> Area port: Blank |
+| Positive_Aux_Ports | Diff port: RefDes0, Positive pins[; RefDes1, Positive pins; ...] <br> Component port: RefDes <br> Area port: Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. |
+| Negative_Aux_Ports | Diff port: RefDes0 or 2, Negative pins or "LUMPED"[; RefDes3, Negative pins; ...] <br> Component port: Blank <br> Area port: Blank |
+
 - LSIO
 
 | Key Words | Descriptions |
 | --------- | ------------ |
 | Spec_Type | Sls: default simulation frequency ranges from 1 MHz to 5 GHz with a step size of 5 MHz. |
 | Positive_Nets | Each row lists all positive nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
-|Negative_Nets | Each row lists all negative nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
-| Positive_Main_Ports | RefDes, Positive pins <br> Or area port Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. |
-| Negative_Main_Ports | RefDes, Negative pins |
-| Positive_Aux_Ports | RefDes, Positive pins <br> Or area port Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. |
-| Negative_Aux_Ports | RefDes, Negative pins |
+| Negative_Nets | Each row lists all negative nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
+| Positive_Main_Ports | Diff port: RefDes, Positive pins <br> Area port: Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. |
+| Negative_Main_Ports | Diff port: RefDes, Negative pins <br> Area port: Blank |
+| Positive_Aux_Ports | Diff port: RefDes, Positive pins <br> Area port: Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. |
+| Negative_Aux_Ports | Diff port: RefDes, Negative pins <br> Area port: Blank |
 
 The port definition takes two forms:
 
@@ -179,7 +199,13 @@ If exists, the file called "spec_type" is needed to provide user-defined spec ty
 | Freq | Frequency info related to the user-defined spec type. | "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
 | Post_Process_Key | Post-processing info related to the user-defined spec type. It's a list of pre-defined keywords to identify the required post-processing actions. | Use "," to separate pre-defined post-processing keywords. |
 
-Currently supported post-processing keywords are list below.
+Currently supported post-processing keywords for PDN are list below.
+| Keyword | Descriptions |
+| ------- | ------------ |
+| ZOPEN | Z-para post-processing with auxiliary ports open. |
+| ZSHORT | Z-para post-processing with auxiliary ports shorted. |
+
+Currently supported post-processing keywords for HSIO and LSIO are list below.
 | Keyword | Descriptions |
 | ------- | ------------ |
 | IL | Insertion loss for single-ended Spara. |
@@ -190,6 +216,7 @@ Currently supported post-processing keywords are list below.
 | TDR_MM | Time-domain characteristic impedance plot for mixed-mode Spara. |
 
 An example is shown below.
+
 ![image](/docs/Figures/spec_type_tab.png)
 
 # Simulation Output
