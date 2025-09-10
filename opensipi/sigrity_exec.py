@@ -432,6 +432,8 @@ class PowersiPdnExec:
                 linux_settings["CMD_HEADER"]
                 + tool
                 + " "
+                + wait_time
+                + bg_run
                 + lic_in_use
                 + " -tcl "
                 + tcl_dir.replace(SL, "/")
