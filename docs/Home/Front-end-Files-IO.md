@@ -22,13 +22,14 @@ These files contains all necessary information needed to set up simulations and 
 | Spec_Type | Mandatory | It indicates the simulation frequency and the way to post-process simulation data. Only one spec type needs to be assigned at the beginning row of a simulation info. Currently, the available spec type will be introduced in the next section. Note that the indicated simulation frequency takes the lowest priority, i.e. it works only when "Op_Freq" is not defined per "Unique_Key" and "GlobalFreq" is not defined in the "Special_Settings" Tab. |
 | Positive_Nets | Mandatory | Positive nets to be included in the simulation. Use "," to separate multiple nets. |
 | Negative_Nets| Mandatory | Negative nets to be included in the simulation. Use "," to separate multiple nets. |
-| Positive_Main_Ports | Mandatory | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins. Area ports are also supported in PDN and LSIO extraction: Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. If Net_Pos and Net_neg are not provided, the first net in 'Positive_Nets' and 'Negative_Nets' columns are automatically picked up to define the area port. The net sequence does matter in this situation. |
+| Positive_Main_Ports | Mandatory | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins. Area ports are also supported in PDN and LSIO extraction: Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. If Net_Pos and Net_neg are not provided, the first net in 'Positive_Nets' and 'Negative_Nets' columns are automatically picked up to define the area port. The net sequence does matter in this situation. |
 | Negative_Main_Ports | Mandatory | Refdes and its pins to set up the negative side of a port. Use "," to separate the refdes and its multiple pins. |
-| Positive_Aux_Ports | Mandatory | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins.  Area ports are also supported in PDN extraction: Rec{LLx, LLy, URx, URy, LayerName}. Aux ports of the obtained S-/Z-parameters may be shorted or open during post-processing based on the specified "Spec_Type". |
+| Positive_Aux_Ports | Mandatory | Refdes and its pins to set up the positive side of a port. Use "," to separate the refdes and its multiple pins.  Area ports are also supported in PDN extraction: Rec{LLx, LLy, URx, URy, LayerName}. Unit is m. Aux ports of the obtained S-/Z-parameters may be shorted or open during post-processing based on the specified "Spec_Type". |
 | Negative_Aux_Ports | Mandatory | Refdes and its pins to set up the negative side of a port. Use "," to separate the refdes and its multiple pins. Aux ports of the obtained S-/Z-parameters may be shorted or open during post-processing based on the specified "Spec_Type". |
 | Op_Freq | Optional | Specify the simulation frequency per "Unique_Key". Once defined, it takes the highest priority. The format is "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
 | Op_DiffPair | Optional | Specify the differential pairs for LSIO and HSIO "ExtractionType". |
 | Op_DisAllCaps | Optional | Cap models are automatically included in extractions without specifying any characters for this keyword. By providing any non-empty characters for this keyword per "Unique_Key", caps are disabled for simulations. |
+| Op_PreCut | Optional | The board is precut per the provided rectangle "LLX, LLY, URX, URY" in mm. This per design precut is done on top of GlobalPreCut. |
 
 Ports are indexed top to bottom of main ports and then top to bottom of auxiliary ports.
 
@@ -58,9 +59,9 @@ Rectangle area port is also supported for PDN extraction. To define an area port
 | Spec_Type | Sls: default simulation frequency ranges from 1 MHz to 5 GHz with a step size of 5 MHz. |
 | Positive_Nets | Each row lists all positive nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
 |Negative_Nets | Each row lists all negative nets that are connected to the ports defined in the same row. Use "," to separate nets. The rows in the same Sim_Key cannot be merged. The nets can be duplicated among different rows in the same Sim_Key. |
-| Positive_Main_Ports | RefDes, Positive pins <br> Or area port Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. |
+| Positive_Main_Ports | RefDes, Positive pins <br> Or area port Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. |
 | Negative_Main_Ports | RefDes, Negative pins |
-| Positive_Aux_Ports | RefDes, Positive pins <br> Or area port Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. |
+| Positive_Aux_Ports | RefDes, Positive pins <br> Or area port Rec{LLx, LLy, URx, URy, LayerName[, Net_Pos, Net_Neg]}, where contents in [] are optional. Unit is m. |
 | Negative_Aux_Ports | RefDes, Negative pins |
 
 The port definition takes two forms:
@@ -168,6 +169,7 @@ Only one file called "special_settings" is needed. The keywords in this sheet is
 | BOM | Use '\n', ',', or ';' to separate refdes | Optional | BOM lists all stuffed components. Those not included components are DNSed and should be disabled during sims. |
 | GlobalFreq | FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL | Optional | Specify the simulation frequency globally. Once defined, it takes the 2nd priority, i.e. it works only when "Op_Freq" is not defined per "Unique_Key". The format is "FREQ_START, FREQ_END, FREQ_STEP, FREQ_SOL", where first two items are mandatory for PDN, first three items are mandatory for LSIO, and all are mandatory for HSIO "ExtractionType". |
 | CapRefDes | Use ',' to separate them | Optional | The starting RefDes keywords to indicate capacitors in a design. "C" is the implied default one. |
+| GlobalPreCut | Use ',' to separate LLX, LLY, URX, URY in mm | Optional | Precut the board outside the provided rectangle. |
 
 ### Spec Type (Optional)
 If exists, the file called "spec_type" is needed to provide user-defined spec types. The keywords in this sheet is explained below.
