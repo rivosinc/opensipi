@@ -10,7 +10,6 @@ Description:
     This module contains all Classes used to execute Cadence Sigrity Tools.
 """
 
-
 import math
 import os
 import re

@@ -10,7 +10,6 @@ Description:
     This module contains constants commonly used by OpenSIPI.
 """
 
-
 INPUT_FILE_STARTSWITH = [
     "SIM",
     "SPECIAL_SETTINGS",

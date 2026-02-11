@@ -11,7 +11,6 @@ Description:
 OpenSIPI application.
 """
 
-
 import base64
 import csv
 import os

@@ -10,7 +10,6 @@ Description:
     This module serves as the platform of the OpenSIPI application.
 """
 
-
 import glob
 import os
 import shutil

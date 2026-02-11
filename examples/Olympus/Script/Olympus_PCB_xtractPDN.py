@@ -11,7 +11,6 @@ Description:
     S-para for PDN purposes.
 """
 
-
 from opensipi.integrated_flows import sim2report
 
 input_info = {
