@@ -10,7 +10,6 @@ Description:
     This module handles gSheet services.
 """
 
-
 import random
 from time import sleep
 

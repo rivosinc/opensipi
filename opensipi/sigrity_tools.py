@@ -10,7 +10,6 @@ Description:
     This module contains all Classes used to parse for Cadence Sigrity Tools.
 """
 
-
 import os
 import re
 

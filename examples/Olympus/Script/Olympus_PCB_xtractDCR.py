@@ -10,7 +10,6 @@ Description:
     This is the main function for Project Olympus to auto extract DCR.
 """
 
-
 from opensipi.integrated_flows import sim2report
 
 input_info = {
