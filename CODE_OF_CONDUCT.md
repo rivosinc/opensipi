@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: (c) Meta Platforms, Inc. and affiliates.
+
+SPDX-License-Identifier: Apache-2.0
+-->
 # Code of Conduct
 
 ## Our Pledge
