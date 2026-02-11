@@ -11,7 +11,6 @@ Description:
     This module handles one touchstone file.
 """
 
-
 from math import log10
 
 import matplotlib.pyplot as plt

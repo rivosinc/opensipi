@@ -10,7 +10,6 @@ Description:
     This module processes input and output files.
 """
 
-
 import glob
 
 from opensipi.constants.CONSTANTS import SIM_INPUT_COL_TITLE, SPEC_TYPE

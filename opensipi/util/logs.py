@@ -10,7 +10,6 @@ Description:
     This Python3 module provides utilities for test logging and result saving.
 """
 
-
 import logging
 import sys
 

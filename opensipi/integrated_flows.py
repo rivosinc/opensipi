@@ -10,7 +10,6 @@ Description:
     This module contains all top-level integrated flows.
 """
 
-
 from opensipi.sipi_infra import Platform
 
 
