@@ -27,6 +27,15 @@ SPDX-FileCopyrightText = [
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
+path = "examples/Olympus/Sim_Input/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+    "Copyright (c) Meta Platforms, Inc. and affiliates.",
+    "2024 Rivos Inc."
+]
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
 path = "docs/Figures/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = [
