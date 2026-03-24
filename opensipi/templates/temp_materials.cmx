@@ -1,8 +1,11 @@
+<!--SPDX-FileCopyrightText: Copyright (c) Meta Platforms, Inc. and affiliates.
+SPDX-FileCopyrightText: © 2024 Rivos Inc.-->
 <?xml version="1.0" encoding="UTF-8"?>
 <Cadence_Material_Lib Version="1.02">
 <DataDescriptions>
 	<Material>
-<Column name="Default Thickness" unit="um" />	</Material>
+		<Column name="Default Thickness" unit="um" />
+	</Material>
 	<Metal>
 		<Column name="Temperature" unit="C" />
 		<Column name="Conductivity" unit="S/m" />
