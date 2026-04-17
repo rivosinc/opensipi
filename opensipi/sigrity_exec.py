@@ -210,7 +210,7 @@ class PowersiPdnExec:
         # create the parent spd file
         self.__mk_parent_spd(mntr_info)
         # initial check for the input formats and existence of the comps/nets
-        self.__init_check()
+        self._init_check()
         # check for the port setups and cap SPICE models
         self._model_check(mntr_info)
         if "op_pause_after_model_check" not in mntr_info:
@@ -452,11 +452,11 @@ class PowersiPdnExec:
             if yorn.upper() == ("N" or "NO"):
                 exit(0)
 
-    def __init_check(self):
+    def _init_check(self):
         """initial check of the input data."""
         self.lg.debug("Initial check starts.")
         # check the format of the input info
-        format_errors = self.__check_input_format()
+        format_errors = self._check_input_format()
         if format_errors:
             raise IllegalInputFormat(self.lg, format_errors)
         else:
@@ -517,7 +517,7 @@ class PowersiPdnExec:
     # __init_check() related methods
     # =============================================================================
 
-    def __check_input_format(self):
+    def _check_input_format(self):
         """check the input format errors"""
         input = self.sim_input
         input_key = list(input.keys())
@@ -542,14 +542,10 @@ class PowersiPdnExec:
             error_all.append(self.__check_net_format(input[i_key], i_key, col=self.NEGNET))
             # ports
             error_all.append(
-                self.__check_port_format(
-                    input[i_key], i_key, pos_col=self.POSMP, neg_col=self.NEGMP
-                )
+                self._check_port_format(input[i_key], i_key, pos_col=self.POSMP, neg_col=self.NEGMP)
             )
             error_all.append(
-                self.__check_port_format(
-                    input[i_key], i_key, pos_col=self.POSAP, neg_col=self.NEGAP
-                )
+                self._check_port_format(input[i_key], i_key, pos_col=self.POSAP, neg_col=self.NEGAP)
             )
             # remove empty strings
             error_all = rm_list_item(error_all, "")
@@ -605,12 +601,12 @@ class PowersiPdnExec:
             error = ""
         return error
 
-    def __check_port_format(self, info, i_key, pos_col, neg_col):
+    def _check_port_format(self, info, i_key, pos_col, neg_col):
         """check the format of the port input"""
         error = []
         i = 1
         for i_row in info:
-            error.extend(self.__check_comp_format(i_row[pos_col], i_row[neg_col], i))
+            error.extend(self._check_comp_format(i_row[pos_col], i_row[neg_col], i))
             i = i + 1
         if error:
             error_key = ("{} -> Col {} and {} ->\n{}").format(
@@ -620,7 +616,7 @@ class PowersiPdnExec:
             error_key = ""
         return error_key
 
-    def __check_comp_format(self, col_p, col_n, i):
+    def _check_comp_format(self, col_p, col_n, i):
         """check the input format of the components"""
         error_msg = []
         # lumped ports
@@ -656,34 +652,6 @@ class PowersiPdnExec:
                     + col_p
                     + ")-(): [Error] There should be only 1 component symbol "
                     + "in the positive side when the negative side is empty."
-                )
-        if ";" in col_p:
-            port_list = list_strip(col_p.split(";"))
-            comp_wo_pin = [port for port in port_list if "," not in port]
-            if comp_wo_pin:
-                error_msg.append(
-                    "\tRow "
-                    + str(i)
-                    + " ("
-                    + col_p
-                    + ")-(): [Error] The component must come with pins when "
-                    + "multi-components are used to define a port. Pins "
-                    + "are missing for the following components:\n"
-                    + ", ".join(comp_wo_pin)
-                )
-        if ";" in col_n:
-            port_list = list_strip(col_n.split(";"))
-            comp_wo_pin = [port for port in port_list if "," not in port]
-            if comp_wo_pin:
-                error_msg.append(
-                    "\tRow "
-                    + str(i)
-                    + " ()-("
-                    + col_n
-                    + "): [Error] The component must come with pins when "
-                    + "multi-components are used to define a port. Pins "
-                    + "are missing for the following components:\n"
-                    + ", ".join(comp_wo_pin)
                 )
         return error_msg
 
@@ -951,6 +919,73 @@ class PowersiIOExec(PowersiPdnExec):
         inst = PowersiIOModeler(info)
         inst.mk_tcl()
         return inst
+
+    def _check_comp_format(self, col_p, col_n, i):
+        """check the input format of the components"""
+        error_msg = []
+        # lumped ports
+        if ("LUMPED" in col_n.upper()) and (";" in col_n):
+            error_msg.append(
+                "\tRow "
+                + str(i)
+                + " ()-("
+                + col_n
+                + "): [Error] There should be only 1 component symbol "
+                + "in the negative side when LUMPED appears."
+            )
+        if "LUMPED" in col_p.upper():
+            error_msg.append(
+                "\tRow "
+                + str(i)
+                + " ("
+                + col_p
+                + ")-(): [Error] The key word LUMPED is only allowed to "
+                + "appear in the negative side of a port."
+            )
+        # component ports
+        if (col_n == "") and (col_p != ""):
+            # only 1 component is allowed
+            if col_p.upper().startswith("REC") & ("{" in col_p):
+                # area port skipped
+                pass
+            elif ("," in col_p) or (";" in col_p):
+                error_msg.append(
+                    "\tRow "
+                    + str(i)
+                    + " ("
+                    + col_p
+                    + ")-(): [Error] There should be only 1 component symbol "
+                    + "in the positive side when the negative side is empty."
+                )
+        if ";" in col_p:
+            port_list = list_strip(col_p.split(";"))
+            comp_wo_pin = [port for port in port_list if "," not in port]
+            if comp_wo_pin:
+                error_msg.append(
+                    "\tRow "
+                    + str(i)
+                    + " ("
+                    + col_p
+                    + ")-(): [Error] The component must come with pins when "
+                    + "multi-components are used to define a port. Pins "
+                    + "are missing for the following components:\n"
+                    + ", ".join(comp_wo_pin)
+                )
+        if ";" in col_n:
+            port_list = list_strip(col_n.split(";"))
+            comp_wo_pin = [port for port in port_list if "," not in port]
+            if comp_wo_pin:
+                error_msg.append(
+                    "\tRow "
+                    + str(i)
+                    + " ()-("
+                    + col_n
+                    + "): [Error] The component must come with pins when "
+                    + "multi-components are used to define a port. Pins "
+                    + "are missing for the following components:\n"
+                    + ", ".join(comp_wo_pin)
+                )
+        return error_msg
 
 
 class ClarityExec(PowersiIOExec):

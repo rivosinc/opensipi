@@ -584,11 +584,12 @@ class PowersiPdnModeler(SpdModeler):
         \nsigrity::update port -name $port_name -NewName {Port_NUMBER} {!}\
         \nsigrity::delete port -PosNode Port_NUMBER,Node*!!*::$rail {!}\n"
     TCL_PORT_DIFF = "sigrity::add port -name {Port_NUMBER} {!}\n"
+    TCL_GET_REFDES_PINS = "set PINNAME [get_refdes_pins_per_net COMP NETNAME]\n"
     TCL_HOOK_PORT_POS = (
-        "sigrity::hook -port {Port_NUMBER} -circuit PCKT " + "-PositiveNode PNODE {!}\n"
+        "eval sigrity::hook -port {Port_NUMBER} -circuit PCKT " + "-PositiveNode PNODE {!}\n"
     )
     TCL_HOOK_PORT_NEG = (
-        "sigrity::hook -port {Port_NUMBER} -circuit NCKT " + "-NegativeNode NNODE {!}\n"
+        "eval sigrity::hook -port {Port_NUMBER} -circuit NCKT " + "-NegativeNode NNODE {!}\n"
     )
     TCL_IMPORT_OPTION = "sigrity::import option {OPTION_DIR} {!}\n"
     TCL_CUTBYNETPOLY = (
@@ -822,12 +823,15 @@ class PowersiPdnModeler(SpdModeler):
         """set up each individual port
         one of the following ports is set up:
         1. component port, pos: 1 single comp, neg: empty
-        2. diff port with Lumped GND pins
-        3. diff port with specific pins
-        4. diff port with pos pins from multiple components, neg pins
-           from a component with lumped GND pins
+        2. area port, pos: 1 single area, neg: empty
+        3. diff port with Lumped GND pins
+        4. diff port with specific pins
         5. diff port with pos pins from multiple components, neg pins
+           from a component with lumped GND pins
+        6. diff port with pos pins from multiple components, neg pins
            from multiple components
+        7. diff port with multiple pos components and neg components
+        8. diff port with a mixture of pos components w. and w/o. pins and neg components w. and w/o. pins
         """
         port_num = str(seq + 1)  # starting from 1
         port_seq = str(seq)  # starting from 0
@@ -851,7 +855,6 @@ class PowersiPdnModeler(SpdModeler):
                 comp = self._map_refdes_n_pin(port_info[0])[0]
                 line_tmp = line_tmp.replace("CKT", comp)
                 line_tmp = line_tmp.replace("SEQ", port_seq)
-
             line_tmp = line_tmp.replace("NUMBER", port_num)
         # differntial port which requires pos and neg inputs
         else:
@@ -861,6 +864,10 @@ class PowersiPdnModeler(SpdModeler):
             if "LUMPED" in port_info[1].upper():
                 line_tmp = self.TCL_PORT_LUMPED_GND
                 for comp_tmp, pin_tmp in zip(comp_pos, comp_pin_pos):
+                    if pin_tmp == "":
+                        pin_name, line_pins = self._get_refdes_pins_per_net(comp_tmp, net_pos[0])
+                        line_tmp = line_tmp + line_pins
+                        pin_tmp = "$" + pin_name
                     line_tmp = line_tmp + self.TCL_HOOK_PORT_POS
                     line_tmp = line_tmp.replace("PCKT", comp_tmp)
                     line_tmp = line_tmp.replace("PNODE", pin_tmp)
@@ -870,16 +877,33 @@ class PowersiPdnModeler(SpdModeler):
             else:
                 line_tmp = self.TCL_PORT_DIFF
                 for comp_tmp, pin_tmp in zip(comp_pos, comp_pin_pos):
+                    if pin_tmp == "":
+                        pin_name, line_pins = self._get_refdes_pins_per_net(comp_tmp, net_pos[0])
+                        line_tmp = line_tmp + line_pins
+                        pin_tmp = "$" + pin_name
                     line_tmp = line_tmp + self.TCL_HOOK_PORT_POS
                     line_tmp = line_tmp.replace("PCKT", comp_tmp)
                     line_tmp = line_tmp.replace("PNODE", pin_tmp)
                 for comp_tmp, pin_tmp in zip(comp_neg, comp_pin_neg):
+                    if pin_tmp == "":
+                        pin_name, line_pins = self._get_refdes_pins_per_net(comp_tmp, net_neg[0])
+                        line_tmp = line_tmp + line_pins
+                        pin_tmp = "$" + pin_name
                     line_tmp = line_tmp + self.TCL_HOOK_PORT_NEG
                     line_tmp = line_tmp.replace("NCKT", comp_tmp)
                     line_tmp = line_tmp.replace("NNODE", pin_tmp)
                 line_tmp = line_tmp.replace("NUMBER", port_num)
         port_lines = port_lines + line_tmp
         return port_lines
+
+    def _get_refdes_pins_per_net(self, refdes, net_name):
+        """get the refdes and pins for a net, return a list of refdes and pins"""
+        pin_name = "refdes_pins"
+        line_pins = self.TCL_GET_REFDES_PINS
+        line_pins = line_pins.replace("PINNAME", pin_name)
+        line_pins = line_pins.replace("COMP", refdes)
+        line_pins = line_pins.replace("NETNAME", net_name)
+        return pin_name, line_pins
 
     def _get_areaport_info(self, port_info, net_pos, net_neg):
         """get the area port info."""

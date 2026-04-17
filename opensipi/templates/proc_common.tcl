@@ -127,3 +127,16 @@ proc turn_off_all_enabled_caps {} {
 proc wsplit {rawstr substr} {
   split [string map [list $substr \0] $rawstr] \0
 }
+
+
+# querying RefDes NetName pins
+proc get_refdes_pins_per_net {refdes netname} {
+    set qryopt ""
+    append qryopt "{object("
+    append qryopt $refdes
+    append qryopt ") ConnNet("
+    append qryopt $netname
+    append qryopt ")}"
+    set pinname [eval sigrity::query -cktNode -option $qryopt]
+    return $pinname
+}
