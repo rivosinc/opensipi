@@ -140,3 +140,113 @@ proc get_refdes_pins_per_net {refdes netname} {
     set pinname [eval sigrity::query -cktNode -option $qryopt]
     return $pinname
 }
+
+
+# querying nearby gnd pins within a certain radius of RefDes+PosNet pins
+proc get_nearby_gnd_pins_per_refdes_n_posnet {refdes posnet negnet radius tgtlayer} {
+	set node_name ""
+    set refdes_net_pin [get_refdes_pins_per_net $refdes $posnet]
+    foreach current_pin $refdes_net_pin {
+        set node_name_temp [eval sigrity::querydetails node -refcircuit {$refdes} -refpin {$current_pin}]
+        lappend node_name $node_name_temp
+    }
+    foreach node $node_name {
+		set node_details [eval sigrity::querydetails node -name $node]
+		lappend x_coord [lindex $node_details 1]
+		lappend y_coord [lindex $node_details 2]
+	}
+
+    set x_min_temp [heapsort $x_coord]
+	set y_min_temp [heapsort $y_coord]
+
+	set x_max_temp [heapsort $x_coord]
+	set y_max_temp [heapsort $y_coord]
+
+	set x_min [lindex $x_min_temp 0]
+	set y_min [lindex $y_min_temp 0]
+
+	set index_max_x ""
+	set index_max_x [llength $x_max_temp]
+	set index_max_x [expr ($index_max_x - 1)]
+
+	set index_max_y ""
+	set index_max_y [llength $y_max_temp]
+	set index_max_y [expr ($index_max_y - 1)]
+
+	set x_max [lindex $x_max_temp $index_max_x]
+	set y_max [lindex $y_max_temp $index_max_y]
+
+	set x_center ""
+	set y_center ""
+
+	set x_center [expr {($x_max + $x_min)/2}]
+	set y_center [expr {($y_max + $y_min)/2}]
+
+    set center ""
+	append center $x_center "m, " $y_center "m"
+	set center_node [eval "sigrity::add node -P \{$center\} -LY \{$tgtlayer\}"]
+	eval "sigrity::add circuit -byPinBased -node $center_node"
+	eval "sigrity::add -portName \{Dummy\} -posCktNode \{NewEmptyCkt1::1\} -negNodeDistance $radius -refNet $negnet"
+	set port_details [sigrity::querydetails port -name {Dummy}]
+	set gnd_node_index ""
+	set gnd_node_index [llength $port_details]
+	set gnd_node_index [expr $gnd_node_index - 1]
+	set number_gnd_nodes [lindex $port_details $gnd_node_index]
+	set number_gnd_nodes [expr $number_gnd_nodes - 1]
+	set nodes_list ""
+	set gnd_node_index 1
+	while {$gnd_node_index <= $number_gnd_nodes} {
+		set current_node [eval "sigrity::querydetails port -name \{Dummy\} -nodeindex $gnd_node_index"]
+		set current_node [lindex $current_node 0]
+		lappend nodes_list $current_node
+		incr gnd_node_index
+	}
+
+	sigrity::delete port -port {Dummy}
+    sigrity::delete cktlink -cktlink {NewEmptyCkt1}
+
+    return $nodes_list
+}
+
+
+proc heapsort {list {count ""}} {
+    if {$count eq ""} {
+	set count [llength $list]
+    }
+    for {set i [expr {$count/2 - 1}]} {$i >= 0} {incr i -1} {
+	siftDown list $i [expr {$count - 1}]
+    }
+    for {set i [expr {$count - 1}]} {$i > 0} {} {
+	swap list $i 0
+	incr i -1
+	siftDown list 0 $i
+    }
+    return $list
+}
+
+
+proc siftDown {varName i j} {
+    upvar 1 $varName a
+    while true {
+	set child [expr {$i*2 + 1}]
+	if {$child > $j} {
+	    break
+	}
+	if {$child+1 <= $j && [lindex $a $child] < [lindex $a $child+1]} {
+	    incr child
+	}
+	if {[lindex $a $i] >= [lindex $a $child]} {
+	    break
+	}
+	swap a $i $child
+	set i $child
+    }
+}
+
+
+proc swap {varName x y} {
+    upvar 1 $varName a
+    set tmp [lindex $a $x]
+    lset a $x [lindex $a $y]
+    lset a $y $tmp
+}

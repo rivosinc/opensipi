@@ -585,12 +585,14 @@ class PowersiPdnModeler(SpdModeler):
         \nsigrity::delete port -PosNode Port_NUMBER,Node*!!*::$rail {!}\n"
     TCL_PORT_DIFF = "sigrity::add port -name {Port_NUMBER} {!}\n"
     TCL_GET_REFDES_PINS = "set PINNAME [get_refdes_pins_per_net COMP NETNAME]\n"
+    TCL_GET_GNDPINS_CLOSE_TO_REFDES = "set PINNAME [get_nearby_gnd_pins_per_refdes_n_posnet COMP POSNET NEGNET RADIUS {TGTLAYER}]\n"
     TCL_HOOK_PORT_POS = (
         "eval sigrity::hook -port {Port_NUMBER} -circuit PCKT " + "-PositiveNode PNODE {!}\n"
     )
     TCL_HOOK_PORT_NEG = (
         "eval sigrity::hook -port {Port_NUMBER} -circuit NCKT " + "-NegativeNode NNODE {!}\n"
     )
+    TCL_HOOK_PORT_NODE_NEG = "eval sigrity::hook -port {Port_NUMBER} " + "-NegativeNode NNODE {!}\n"
     TCL_IMPORT_OPTION = "sigrity::import option {OPTION_DIR} {!}\n"
     TCL_CUTBYNETPOLY = (
         "sigrity::update net selected 0 GNDNETS {!}\n"
@@ -832,6 +834,7 @@ class PowersiPdnModeler(SpdModeler):
            from multiple components
         7. diff port with multiple pos components and neg components
         8. diff port with a mixture of pos components w. and w/o. pins and neg components w. and w/o. pins
+           component with RAD{radius, layer} is used to find the nearby GND nodes close to the comp pos pins
         """
         port_num = str(seq + 1)  # starting from 1
         port_seq = str(seq)  # starting from 0
@@ -889,12 +892,40 @@ class PowersiPdnModeler(SpdModeler):
                         pin_name, line_pins = self._get_refdes_pins_per_net(comp_tmp, net_neg[0])
                         line_tmp = line_tmp + line_pins
                         pin_tmp = "$" + pin_name
-                    line_tmp = line_tmp + self.TCL_HOOK_PORT_NEG
-                    line_tmp = line_tmp.replace("NCKT", comp_tmp)
-                    line_tmp = line_tmp.replace("NNODE", pin_tmp)
+                        line_tmp = line_tmp + self.TCL_HOOK_PORT_NEG
+                        line_tmp = line_tmp.replace("NCKT", comp_tmp)
+                        line_tmp = line_tmp.replace("NNODE", pin_tmp)
+                    elif pin_tmp.upper().startswith("RAD"):
+                        pin_name, line_pins = self._get_nearby_gndpins_per_refdes_n_net(
+                            comp_tmp, net_pos[0], net_neg[0], pin_tmp
+                        )
+                        line_tmp = line_tmp + line_pins
+                        pin_tmp = "$" + pin_name
+                        line_tmp = line_tmp + self.TCL_HOOK_PORT_NODE_NEG
+                        line_tmp = line_tmp.replace("NNODE", pin_tmp)
+                    else:
+                        line_tmp = line_tmp + self.TCL_HOOK_PORT_NEG
+                        line_tmp = line_tmp.replace("NCKT", comp_tmp)
+                        line_tmp = line_tmp.replace("NNODE", pin_tmp)
                 line_tmp = line_tmp.replace("NUMBER", port_num)
         port_lines = port_lines + line_tmp
         return port_lines
+
+    def _get_nearby_gndpins_per_refdes_n_net(self, refdes, posnet, negnet, pin_tmp):
+        """get the gnd pins close to the given refdes+pos net"""
+        pin_name = "gnd_nodes"
+        pininfo_tmp = pin_tmp.replace("RAD{", "").replace("}", "")
+        pininfo = striped_str2list(pininfo_tmp, " ")
+        radius = pininfo[0]
+        tgt_layer = pininfo[1]
+        line_pins = self.TCL_GET_GNDPINS_CLOSE_TO_REFDES
+        line_pins = line_pins.replace("PINNAME", pin_name)
+        line_pins = line_pins.replace("COMP", refdes)
+        line_pins = line_pins.replace("POSNET", posnet)
+        line_pins = line_pins.replace("NEGNET", negnet)
+        line_pins = line_pins.replace("RADIUS", radius)
+        line_pins = line_pins.replace("TGTLAYER", tgt_layer)
+        return pin_name, line_pins
 
     def _get_refdes_pins_per_net(self, refdes, net_name):
         """get the refdes and pins for a net, return a list of refdes and pins"""
