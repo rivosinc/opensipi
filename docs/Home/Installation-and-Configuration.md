@@ -5,45 +5,62 @@ SPDX-FileCopyrightText: 2024 Rivos Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Installation and update
-Open a terminal or command window. Install or update the tool using the following command.
+[← Documentation Home](/docs/Home.md)
 
-```
+# Installation and Configuration
+
+## Installation and Update
+
+Open a terminal or command window. Install or update the tool using the following
+command.
+
+```shell
 pip3 install git+https://github.com/rivosinc/opensipi
 ```
 
-# Configuration
+## Configuration
 
-Root directory: "C:/" for windows
+Create a new directory named `opensipi_config` under the root directory if it does not
+already exist.
 
-Create a new directory "opensipi_config" under the root directory if not existing. The directory name must be exact.
+| OS      | Root directory |
+| ------- | -------------- |
+| Windows | `C:/`          |
+| Linux   | `$HOME`        |
 
-## Files must be under Folder "opensipi_config"
-The following files MUST exist in "opensipi_config"
-- config_sigrity.yaml: parameters to configure Cadence Sigrity tools.
-- config_linux.yaml: parameters related to Linux OS.
-- usr.yaml: parameters related to users
+> [!IMPORTANT]
+> The directory name must be exactly `opensipi_config`.
 
-### config_sigrity.yaml
-The mandatory key words are explained as below.
+### Files That Must Live in `opensipi_config`
 
-| Key Word | Value | Description |
-| -------- | ----- | ----------- |
-| SIG_LIB | string | The directory of a Sigrity component library file *.amm. |
-| SIG_OPTION | string | The directory of a PowerSI option file *.xml. |
-| CLARITY_OPTION | string | The directory of a Clarity option file *.xml. |
-| PDC_OPTION | string | The directory of a PowerDC option file *.xml. |
-| CORE_NUM | int | The number of CPU cores used for a simulation. |
-| DEFAULT_SOLDER | list of float | First number is solder height in mm. Second number is solder diameter to pad size ratio. |
-| DEFAULT_ANTIPAD | float | One number for FEM port antipad ratio. |
-| SIG_VER | string | The version of Sigrity |
-| SIG_LIC | list of string | License names for each Sigrity tool including POWERSI, CLARITY3DLAYOUT, and POWERDC. |
-| KNOB_BACKGND_RUN | 0 or 1 | Disable or enable background run sims. |
-| KNOB_EMAIL | 0 or 1 | Disable or enable email delivery. |
+| File                  | Required                     | Purpose                                            |
+| --------------------- | ---------------------------- | -------------------------------------------------- |
+| `config_sigrity.yaml` | Yes                          | Parameters to configure Cadence Sigrity tools      |
+| `config_linux.yaml`   | Yes                          | Parameters related to Linux OS                     |
+| `usr.yaml`            | Yes                          | Parameters related to users                        |
+| `config_gsuites.yaml` | Only for the Google Suites flow | Google account and Drive parameters             |
+
+#### `config_sigrity.yaml`
+
+The mandatory keywords are explained below.
+
+| Keyword             | Value          | Description                                                                                   |
+| ------------------- | -------------- | --------------------------------------------------------------------------------------------- |
+| `SIG_LIB`           | string         | The directory of a Sigrity component library file `*.amm`.                                    |
+| `SIG_OPTION`        | string         | The directory of a PowerSI option file `*.xml`.                                               |
+| `CLARITY_OPTION`    | string         | The directory of a Clarity option file `*.xml`.                                               |
+| `PDC_OPTION`        | string         | The directory of a PowerDC option file `*.xml`.                                               |
+| `CORE_NUM`          | int            | The number of CPU cores used for a simulation.                                                |
+| `DEFAULT_SOLDER`    | list of float  | First number is solder height in mm. Second number is solder diameter to pad size ratio.      |
+| `DEFAULT_ANTIPAD`   | float          | One number for FEM port antipad ratio.                                                        |
+| `SIG_VER`           | string         | The version of Sigrity.                                                                       |
+| `SIG_LIC`           | list of string | License names for each Sigrity tool, including `POWERSI`, `CLARITY3DLAYOUT`, and `POWERDC`.   |
+| `KNOB_BACKGND_RUN`  | `0` or `1`     | Disable or enable background run sims.                                                        |
+| `KNOB_EMAIL`        | `0` or `1`     | Disable or enable email delivery.                                                             |
 
 An example is given below.
 
-``` yaml
+```yaml
 # TCL Settings
 # Notice: Start with r to avoid the escape characters in the directory
 # AMM library path
@@ -77,35 +94,51 @@ KNOB_BACKGND_RUN: 0
 KNOB_EMAIL: 0
 ```
 
-### config_linux.yaml
-The mandatory key words are explained as below.
+#### `config_linux.yaml`
 
-| Key Word | Value | Description |
-| -------- | ----- | ----------- |
-| CMD_HEADER | string | Allow users to customize scheduler info. |
+The mandatory keywords are explained below.
+
+| Keyword      | Value  | Description                              |
+| ------------ | ------ | ---------------------------------------- |
+| `CMD_HEADER` | string | Allow users to customize scheduler info. |
 
 ```yaml
 # CMD_HEADER, allow users to customize scheduler info
 CMD_HEADER: ''
 ```
 
-### usr.yaml
-The mandatory key words are explained as below.
+#### `usr.yaml`
 
-| Key Word | Value | Description |
-| -------- | ----- | ----------- |
-| USR_ID | string | User ID. |
+The mandatory keywords are explained below.
+
+| Keyword  | Value  | Description |
+| -------- | ------ | ----------- |
+| `USR_ID` | string | User ID.    |
 
 ```yaml
 # User ID
 USR_ID: user_id
 ```
 
-## Files can reside any locations
-The following files are must-haves but can reside outside Folder "opensipi_config"
-- Cadence component library: *.amm
+#### `config_gsuites.yaml` (only for the Google Suites flow)
 
-    Set the full path to this amm file to SIG_LIB in config_sigrity.yaml
-- Option Files for Cadence Clarity, PowerSI, and PowerDC: *.xml
+This file is read only when the input comes from a Google Sheet or the output is uploaded
+to Google Drive — see
+[`sim2report_gsuites()`](/docs/Home/Integrated-Flows.md#sim2report_gsuitesinput_info-mntr_info).
+It is not needed for the plain CSV flow.
 
-    Set the full paths to these xml files to SIG_OPTION, CLARITY_OPTION, and PDC_OPTION in config_sigrity.yaml
+| Keyword               | Value  | Description                                              |
+| --------------------- | ------ | ---------------------------------------------------------- |
+| `ACCOUNT_KEY_DIR`     | string | Path to the Google account key file.                     |
+| `ACCOUNT_TYPE`        | string | Account type, e.g. `service`.                            |
+| `ROOT_GDRIVE_ID`      | string | ID of the Google Drive folder to upload the results to.  |
+| `OUT_SHEET_GDRIVE_ID` | string | ID of the Google Drive folder for the output sheet.      |
+
+### Files That Can Live Anywhere
+
+The following files are must-haves but can reside outside folder `opensipi_config`.
+
+| File                                                     | How it is found                                                                              |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Cadence component library `*.amm`                        | Set the full path to `SIG_LIB` in `config_sigrity.yaml`.                                      |
+| Option files for Cadence Clarity, PowerSI, and PowerDC `*.xml` | Set the full paths to `SIG_OPTION`, `CLARITY_OPTION`, and `PDC_OPTION` in `config_sigrity.yaml`. |
