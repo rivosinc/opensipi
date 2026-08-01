@@ -4,65 +4,125 @@ SPDX-FileCopyrightText: © 2024 Rivos Inc.
 
 SPDX-License-Identifier: Apache-2.0
 -->
-[![REUSE status](https://api.reuse.software/badge/github.com/rivosinc/opensipi)](https://api.reuse.software/info/github.com/rivosinc/opensipi)
 
 # OpenSIPI
 
-OpenSIPI is an open-source platform used to automate signal integrity (SI) and power integrity (PI) related extractions.
+[![REUSE status](https://api.reuse.software/badge/github.com/rivosinc/opensipi)](https://api.reuse.software/info/github.com/rivosinc/opensipi)
 
-## Description
+**An open-source platform that automates signal integrity (SI) and power
+integrity (PI) extractions.**
 
-OpenSIPI serves as a platform to read and parse input info that is needed to set up simulations, to generate scripts that can be run by the EDA tools, to launch and monitor simulations running through the EDA tools, to post-process the extracted results and to create reports. Currently, OpenSIPI is developed with a focus on S-parameter and DCR extraction.
-While OpenSIPI is open-sourced free of charge, the supported back-end simulation solvers are still commercialized tools. The successful extraction of the desired results are subject to the availability of proper commercial licenses.
+Describe your simulations in a set of tables, and OpenSIPI does the rest: it
+parses the input, generates the scripts your EDA tool runs, launches and
+monitors the simulations, post-processes the extracted results, and writes a
+report. The focus so far is S-parameter and DCR extraction.
 
-## Installation and update
+![OpenSIPI Overview](/docs/Figures/OpenSIPI_Overview.png)
 
-Open a terminal or command window. Install or update the tool using the following command.
-```
+> [!IMPORTANT]
+> OpenSIPI is free and open source, but the back-end solvers it drives are
+> commercial tools. Extracting anything requires the appropriate commercial
+> licenses, which are **not** included here.
+
+## What It Extracts
+
+| Extraction | Solver          | Purpose                          | Result              |
+| ---------- | --------------- | -------------------------------- | ------------------- |
+| `PDN`      | Cadence PowerSI | Power delivery network (Z-param) | Touchstone (`.sNp`) |
+| `LSIO`     | Cadence PowerSI | Low-speed IO (S-param)           | Touchstone (`.sNp`) |
+| `HSIO`     | Cadence Clarity | High-speed IO (S-param, 3D FEM)  | Touchstone (`.sNp`) |
+| `DCR`      | Cadence PowerDC | DC resistance                    | CSV                 |
+
+## Requirements
+
+- Python 3.10 or newer
+- A licensed installation of the Cadence Sigrity tools
+
+## Installation
+
+Open a terminal or command window. Install or update the tool using the
+following command.
+
+```shell
 pip3 install git+https://github.com/rivosinc/opensipi
 ```
 
-## Starter Kit
+## Quick Start
 
-- [Windows Users](docs/Home/Starter-Kit-for-Windows-Users.md)
-- [Linux Users](/docs/Home/Starter-Kit-for-Linux-Users.md)
+The starter kits walk you through a complete extraction on a real open-source
+board, from downloading the design to reading the report.
 
-## Wiki
+- [Starter Kit for Windows Users](/docs/Home/Starter-Kit-for-Windows-Users.md)
+- [Starter Kit for Linux Users](/docs/Home/Starter-Kit-for-Linux-Users.md)
 
-[Wiki](docs/Home.md)
+Once your input tables and `opensipi_config` folder are in place, a run is a
+handful of lines:
 
-## FAQ
+```python
+from opensipi.integrated_flows import sim2report
 
-## Email list
+input_info = {
+    "input_dir": r"C:\SIPIProj\Olympus\Sim_Input" + "\\",
+    "input_type": "csv",
+    "input_folder": "Sigrity_PDN",
+    "op_run_name": "",
+}
 
-## Support
+mntr_info = {
+    "email": "",
+    "op_pause_after_model_check": 1,
+}
 
-You can show your support for this project by becoming a:
+report_dir = sim2report(input_info, mntr_info)
+```
 
-- contributor
-  - Contribute to codings and help resolve open issues
-  - Contribute to documentation and test cases
-- user
-  - Integrate this platform in your workflow, report bugs and provide feedback for feature improvement
+## Documentation
+
+Full documentation lives in [`docs/Home.md`](/docs/Home.md).
+
+| Page                                                                           | What it covers                                          |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| [Overview of the Application](/docs/Home/Overview-of-the-Application.md)       | The three layers OpenSIPI is built from.                |
+| [Installation and Configuration](/docs/Home/Installation-and-Configuration.md) | The `opensipi_config` folder and its YAML files.        |
+| [Front-end Files IO](/docs/Home/Front-end-Files-IO.md)                         | Every input sheet and keyword, with worked examples.    |
+| [Mid-layer Platform](/docs/Home/Mid-layer-Platform.md)                         | The run folder structure and the extraction workflow.   |
+| [Back-end Simulation Solvers](/docs/Home/Back-end-Simulation-Solvers.md)       | Which solver is used for which extraction type.         |
+| [User Manual](/docs/Home/User-Manual.md)                                       | API reference for the flows and the `Platform` class.   |
+
+## Example
+
+[`examples/Olympus/`](/examples/Olympus) is a full worked example built on the
+Intel Olympus board from the Open Compute Project: input CSVs, launch scripts,
+and sample output reports for all four extraction types.
 
 ## Roadmap
 
-## Contributing
-
-Call for contribution to the following areas:
+Contributions in these areas are especially welcome:
 
 - Enable back-end extraction tools from more vendors.
 - Include more options for S-parameter post-processing.
 - Beautify reports.
 
-Please look at this [doc](CONTRIBUTING.md) to get started.
+## Contributing
 
-## Authors and acknowledgment
+Fork the repo, make your changes, and open a pull request. See
+[CONTRIBUTING.md](CONTRIBUTING.md) to get set up, and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for the ground rules.
+
+You can also support the project as a **user**: integrate the platform into your
+workflow, report bugs, and tell us which features would help.
+
+## Authors
+
+Created and maintained by Yansheng Wang. See the
+[contributors](https://github.com/rivosinc/opensipi/graphs/contributors) for the
+full list.
 
 ## License
 
-Before using this application for any purpose, you MUST read and understand the terms put forward in the accompanying "LICENSE" file.
+Apache-2.0. Before using this application for any purpose, you MUST read and
+understand the terms put forward in the accompanying [LICENSE](LICENSE) file.
 
-## Project status
+## Project Status
 
 The project is at its early stage and is actively under development.
