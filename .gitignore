@@ -3,12 +3,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# Ignore Python compiled bytecode files
+# Ignore Python generated artifacts
 *.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
 # Ignore VSC config directory
 /.vscode
-# Ignore tests directory
-/tests
 # Ignore venv
 .venv/*
 # Ignore .DS_Store

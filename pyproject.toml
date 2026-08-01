@@ -5,9 +5,9 @@
 
 [tool.poetry]
 name = "opensipi"
-version = "0.2.7"
+version = "0.2.8"
 description = "An open-source Python3-based tool to automate signal integrity (SI) and power integrity (PI) related simulations."
-authors = ["Yansheng Wang <yanshengw@rivosinc.com>"]
+authors = ["Yansheng Wang <yanshengw@meta.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 
@@ -32,6 +32,8 @@ typing-extensions = "^4.12.2"
 
 [tool.poetry.group.dev.dependencies]
 reuse = "^4.0.3"
+pytest = "^9.1.1"
+pytest-cov = "^7.1.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -42,3 +44,19 @@ line_length = 100
 
 [tool.isort]
 profile = "black"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers -ra"
+markers = [
+    "slow: marks deterministic tests that are too slow for the default test run",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["opensipi"]
+omit = ["opensipi/autopwt/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = false

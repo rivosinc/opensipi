@@ -43,3 +43,12 @@ SPDX-FileCopyrightText = [
     "2024 Rivos Inc."
 ]
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/__pycache__/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+    "Copyright (c) Meta Platforms, Inc. and affiliates.",
+    "2024 Rivos Inc."
+]
+SPDX-License-Identifier = "Apache-2.0"
