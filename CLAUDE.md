@@ -165,8 +165,8 @@ Future integration coverage needs:
   `config_linux.yaml`, `usr.yaml`, and `config_gsuites.yaml`, with no secrets.
 - Separate Google service-account and browser-auth integration coverage for Drive
   and Sheets. Live calls must never run in normal unit tests.
-- `wkhtmltopdf` integration for `pdfkit` and a deterministic end-to-end PDF/report
-  fixture strategy.
+- `wkhtmltopdf` integration for the hardened direct converter, with assets
+  embedded as data URIs, and a deterministic end-to-end PDF/report fixture strategy.
 - Controlled interactive `input()` flows, wall-clock run names, OS-specific
   command/path behavior, and a future Windows/Linux CI matrix.
 - Production remediation of mutable `pdn_report` and `io_report` globals. Until
