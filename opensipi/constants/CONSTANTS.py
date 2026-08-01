@@ -9,6 +9,32 @@ Last updated on Sep. 9, 2025
 
 Description:
     This module contains constants commonly used by OpenSIPI.
+
+    These constants are the vocabulary the input sheets are written in, so
+changing one changes what users must type in their tables.
+
+Attributes:
+    INPUT_FILE_STARTSWITH (list of str): The four recognized sheet name
+        patterns, in the fixed order ``[sim, special settings, stackup and
+        materials, spec type]``. Consumers index this list positionally, so
+        the order matters as much as the values. A sheet name is matched
+        upper-cased, by prefix for the sim sheets and exactly for the other
+        three.
+    SIM_INPUT_COL_TITLE (list of str): The upper-cased column titles of a sim
+        sheet. Also indexed positionally, e.g. index 1 is ``"CHECK_BOX"``, the
+        column deciding whether a simulation is enabled.
+    SPEC_TYPE (dict): The built-in spec types, mapping an upper-cased spec type
+        name to its ``"FREQ"`` and ``"POST_PROCESS_KEY"`` definition. The
+        length of ``"FREQ"`` follows the extraction type it serves:
+        ``[FREQ_START, FREQ_END]`` for the PDN entries, which sweep
+        adaptively; ``[..., FREQ_STEP]`` for the LSIO entries; and
+        ``[..., FREQ_STEP, FREQ_SOL]`` for the HSIO entries, which also need a
+        solution frequency. A user-supplied spec type sheet adds to or
+        overrides this mapping.
+    POST_PROCESS_KEY_ORDER_PDN (dict): Post-processing key to its sort rank,
+        used to present PDN results in a stable order regardless of the order
+        the keys were written in the input.
+    POST_PROCESS_KEY_ORDER_IO (dict): The same, for the HSIO and LSIO results.
 """
 
 INPUT_FILE_STARTSWITH = [

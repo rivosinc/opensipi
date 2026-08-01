@@ -10,6 +10,21 @@ Last updated on Mar. 20, 2025
 
 Description:
     This module handles one touchstone file.
+
+    One ``TouchStone`` instance wraps one snp file and turns it into the plots
+and the extracted figures of merit a report needs. What gets produced is driven
+by the ``POST_PROCESS_KEY`` list of the spec type, so the same class serves PDN
+impedance work and IO loss work.
+
+    Two port-numbering conventions meet here. The connectivity lists coming
+from the input are one-based, matching how ports are numbered in the sheets and
+in the touchstone file, while scikit-rf indexes from zero, so the conversion
+happens at each point of use.
+
+Note:
+    The ``__main__`` block at the bottom is a stale demo. Its ``info`` dict is
+    missing the ``key_name`` and ``conn_dict`` keys the constructor now needs,
+    so running this module directly fails.
 """
 
 from math import log10
@@ -26,9 +41,42 @@ from opensipi.util.common import (
 
 
 class TouchStone:
-    """"""
+    """Post-process one touchstone file into plots and extracted values.
+
+    Attributes:
+        MM_KEY (list of str): The post-processing keys that require the
+            single-ended network to be converted to mixed-mode. Used to decide
+            whether to pay for that conversion at construction time.
+    """
 
     def __init__(self, info):
+        """Load the touchstone file and prepare the networks to work from.
+
+        The file is read here, and the mixed-mode conversion is done up front
+        when the spec type calls for it, so the plotting methods can assume
+        both networks already exist.
+
+        Args:
+            info (dict): Everything needed to process this one file.
+
+                * ``file_dir`` (str): Full path of the snp file.
+                * ``key_name`` (str): Simulation key, used to name the figures.
+                * ``plt_dir`` (str): Directory to write the figures into.
+                * ``spec_type`` (dict): The spec type definition, whose
+                  ``POST_PROCESS_KEY`` list decides what gets produced.
+                * ``conn_dict`` (dict): Connectivity lists per post-processing
+                  key, telling each plot which ports to draw. All port numbers
+                  here are one-based.
+
+        Attributes:
+            f (numpy.ndarray): The frequency axis in GHz. The underlying
+                network keeps Hz, so this is the axis the plots use.
+            nw (skrf.Network): The single-ended network read from the file.
+            nw_mm (skrf.Network): The mixed-mode network, or ``nw`` itself when
+                no mixed-mode post-processing was requested.
+            port_num (int): Port count of the single-ended network.
+            short0 (skrf.Network): A one-port short used to terminate ports.
+        """
         # define constants
         self.MM_KEY = ["IL_MM", "RL_MM"]
         # define variables
@@ -44,7 +92,16 @@ class TouchStone:
         self.nw_mm = self.__get_mixedmode_network()
 
     def auto_process(self):
-        """Automatically process SNP files based on spect_type."""
+        """Automatically process SNP files based on spect_type.
+
+        Each key in the spec type's ``POST_PROCESS_KEY`` list is dispatched to
+        the matching plot method. A key with no case here is skipped silently.
+
+        Returns:
+            dict: Post-processing key to that key's output. The value is a list
+            of ``[fig_title, fig_dir, ...]`` entries for the single-ended keys,
+            and a dict of mixed-mode type to such a list for the ``_MM`` keys.
+        """
         output_dict = {}
         process_key = self.spec_type["POST_PROCESS_KEY"]
         for key in process_key:
@@ -68,8 +125,22 @@ class TouchStone:
         return output_dict
 
     def plot_zself(self, prockey=None):
-        """Use connectivity list to determine Zin plot. Leave the sense ports
-        floating and plot the self Zs for the rest ports.
+        """Plot the self impedance with the sense ports left floating.
+
+        Uses the connectivity list to determine the Zin plot. The sense ports,
+        being the auxiliary ports that follow the main ones, are left open, so
+        the result is the impedance the sink sees with nothing shorting the
+        rail. One figure is written per main port.
+
+        Args:
+            prockey (str, optional): Post-processing key, folded into the
+                figure names to keep the open and shorted variants apart.
+
+        Returns:
+            list of list: One entry per main port, being
+            ``[fig_title, fig_dir, "", L_at_100MHz_pH, C_at_10kHz_nF]``. The
+            resistance slot is left empty, as it is not meaningful with the
+            sense ports open.
         """
         output_list = []
         if prockey:
@@ -91,8 +162,22 @@ class TouchStone:
         return output_list
 
     def plot_zself_shortsns(self, prockey=None):
-        """Use connectivity list to determine Zin plot. Short the sense ports
-        and plot the self Zs for the rest ports.
+        """Plot the self impedance with the sense ports shorted.
+
+        Uses the connectivity list to determine the Zin plot. Every port beyond
+        the main ones is terminated into a short before the impedance is read,
+        which models the VRM shorting the rail and makes the DC resistance of
+        the loop measurable.
+
+        Args:
+            prockey (str, optional): Post-processing key, folded into the
+                figure names.
+
+        Returns:
+            list of list: One entry per remaining port, being
+            ``[fig_title, fig_dir, R_at_1kHz_mOhm, L_at_100MHz_pH, ""]``. The
+            capacitance slot is left empty, as it is not meaningful with the
+            sense ports shorted.
         """
         output_list = []
         if prockey:
@@ -123,7 +208,25 @@ class TouchStone:
         return output_list
 
     def plot_il(self, conn_list, nw_s_db, prockey=None, header="S"):
-        """Plot insertion loss based on the connectivity dict."""
+        """Plot insertion loss based on the connectivity dict.
+
+        Every requested through path is drawn as one curve on a single figure.
+
+        Args:
+            conn_list (list of list of int): One ``[input_port, output_port]``
+                pair per curve, one-based.
+            nw_s_db (numpy.ndarray): The S-parameters in dB, indexed
+                ``[freq, output, input]``.
+            prockey (str, optional): Post-processing key, folded into the
+                figure name.
+            header (str, optional): Curve label prefix, naming the mode being
+                drawn, e.g. ``"S"``, ``"SDD"``, or ``"SDC"``. Defaults to
+                ``"S"``.
+
+        Returns:
+            list of list of str: A single entry ``[fig_title, fig_dir]``, since
+            all the curves share one figure.
+        """
         if prockey:
             proc_key_name = "__" + prockey + "__" + header
         else:
@@ -141,7 +244,21 @@ class TouchStone:
         return output_list
 
     def plot_rl(self, conn_list, nw_s_db, prockey=None, header="S"):
-        """Plot return loss based on the connectivity dict."""
+        """Plot return loss based on the connectivity dict.
+
+        Every requested port is drawn as one reflection curve on a single
+        figure.
+
+        Args:
+            conn_list (list of int): The ports to draw, one-based.
+            nw_s_db (numpy.ndarray): The S-parameters in dB.
+            prockey (str, optional): Post-processing key, folded into the
+                figure name.
+            header (str, optional): Curve label prefix. Defaults to ``"S"``.
+
+        Returns:
+            list of list of str: A single entry ``[fig_title, fig_dir]``.
+        """
         if prockey:
             proc_key_name = "__" + prockey + "__" + header
         else:
@@ -159,7 +276,23 @@ class TouchStone:
         return output_list
 
     def plot_il_mm(self, conn_list, nw_mm_s_db, prockey=None):
-        """Plot mixed-mode insertion loss based on the connectivity dict."""
+        """Plot mixed-mode insertion loss based on the connectivity dict.
+
+        All four quadrants are plotted, so both the wanted differential and
+        common transmission and the unwanted mode conversion between them are
+        visible.
+
+        Args:
+            conn_list (list of list of int): One ``[input_port, output_port]``
+                pair per curve, numbered in mixed-mode ports.
+            nw_mm_s_db (numpy.ndarray): The mixed-mode S-parameters in dB.
+            prockey (str, optional): Post-processing key, folded into the
+                figure names.
+
+        Returns:
+            dict: Quadrant name to the output of :meth:`plot_il` for it, with
+            the keys ``"DD"``, ``"CC"``, ``"DC"``, and ``"CD"``.
+        """
         nw_dd, nw_dc, nw_cd, nw_cc = self.__split_mixedmode_network(nw_mm_s_db)
         out_dict = {}
         # Diff_Diff
@@ -173,7 +306,21 @@ class TouchStone:
         return out_dict
 
     def plot_rl_mm(self, conn_list, nw_mm_s_db, prockey=None):
-        """Plot mixed-mode return loss based on the connectivity dict."""
+        """Plot mixed-mode return loss based on the connectivity dict.
+
+        Only the two like-mode quadrants are plotted, as reflection is read
+        within a mode rather than across modes.
+
+        Args:
+            conn_list (list of int): The mixed-mode ports to draw, one-based.
+            nw_mm_s_db (numpy.ndarray): The mixed-mode S-parameters in dB.
+            prockey (str, optional): Post-processing key, folded into the
+                figure names.
+
+        Returns:
+            dict: Quadrant name to the output of :meth:`plot_rl` for it, with
+            the keys ``"DD"`` and ``"CC"``.
+        """
         nw_dd, _, _, nw_cc = self.__split_mixedmode_network(nw_mm_s_db)
         out_dict = {}
         # Diff_Diff
@@ -183,8 +330,18 @@ class TouchStone:
         return out_dict
 
     def plot_zmag(self, fig_data, fig_title, fig_dir):
-        """Plot Zmag vs. freq (GHz).
-        fig_data = [[f1, Z1, option], [f2, Z2, option], ...]
+        """Plot Zmag vs. freq (GHz) and save it to a png.
+
+        Both axes are logarithmic, which is how a PDN impedance profile is
+        conventionally read.
+
+        Args:
+            fig_data (list of list): One curve per entry, as
+                ``[f, Z]`` or ``[f, Z, option]``, where ``option`` is a dict of
+                matplotlib keyword arguments. A ``label`` in it turns the
+                legend on.
+            fig_title (str): Title drawn on the figure.
+            fig_dir (str): Full path of the png to write.
         """
         plt.figure(figsize=(8, 5))
         for i_curve in fig_data:
@@ -206,8 +363,21 @@ class TouchStone:
         plt.close()
 
     def plot_smag(self, fig_data, fig_title, fig_dir):
-        """Plot Smag vs. freq (GHz).
-        fig_data = [[f1, S1, option], [f2, S2, option], ...]
+        """Plot Smag vs. freq (GHz) and save it to a png.
+
+        The frequency axis is linear here, unlike :meth:`plot_zmag`, since loss
+        curves are read against a linear frequency sweep.
+
+        Args:
+            fig_data (list of list): One curve per entry, as
+                ``[f, S]`` or ``[f, S, option]``, where ``option`` is a dict of
+                matplotlib keyword arguments.
+            fig_title (str): Title drawn on the figure.
+            fig_dir (str): Full path of the png to write.
+
+        Note:
+            The y axis is always labelled ``"S21 (dB)"``, including on the
+            return loss figures.
         """
         plt.figure(figsize=(8, 5))
         for i_curve in fig_data:
@@ -227,7 +397,27 @@ class TouchStone:
         plt.close()
 
     def plot_tdr(self, conn_list, nw_raw, prockey=None, header="SE"):
-        """Plot TDR for given ports."""
+        """Plot TDR for given ports.
+
+        A time-domain view needs a network that starts at DC and is sampled on
+        an even frequency grid, so the network is first extrapolated to DC when
+        it does not already reach it and then resampled onto a 10 MHz linear
+        step. Two figures are produced, one per end of the link.
+
+        Args:
+            conn_list (list of list of int): Two lists, being the left-side and
+                the right-side ports, one-based.
+            nw_raw (skrf.Network): The network to transform. Copied, not
+                modified.
+            prockey (str, optional): Post-processing key, folded into the
+                figure names.
+            header (str, optional): Name of the mode being drawn, e.g.
+                ``"SE"``, ``"DD"``, or ``"CC"``. Defaults to ``"SE"``.
+
+        Returns:
+            list of list of str: Two entries ``[fig_title, fig_dir]``, for the
+            left and the right ports respectively.
+        """
         if prockey:
             proc_key_name = "__" + prockey + "__" + header
         else:
@@ -253,7 +443,23 @@ class TouchStone:
         return output_list
 
     def plot_tdr_mm(self, conn_list, nw_raw, prockey=None):
-        """Plot TDR for Mixed-mode ports."""
+        """Plot TDR for Mixed-mode ports.
+
+        In a mixed-mode network the differential ports occupy the first half of
+        the port range and the common ports the second half, so the common-mode
+        plot reuses the same connectivity list shifted by half the port count.
+
+        Args:
+            conn_list (list of list of int): Two lists of differential ports,
+                being the left and the right side, one-based.
+            nw_raw (skrf.Network): The mixed-mode network.
+            prockey (str, optional): Post-processing key, folded into the
+                figure names.
+
+        Returns:
+            dict: Mode name to the output of :meth:`plot_tdr` for it, with the
+            keys ``"DD"`` and ``"CC"``.
+        """
         out_dict = {}
         # Diff_Diff
         out_dict["DD"] = self.plot_tdr(conn_list, nw_raw, prockey, "DD")
@@ -264,7 +470,16 @@ class TouchStone:
         return out_dict
 
     def plot_time_domain(self, conn_list, fig_data, fig_title, fig_dir):
-        """Plot time domain response."""
+        """Plot the step-response characteristic impedance and save it to a png.
+
+        Args:
+            conn_list (list of int): The ports to draw, one-based.
+            fig_data (skrf.Network): The network to read the step response
+                from. Named for symmetry with the other plot methods, though it
+                is a network rather than pre-computed curves.
+            fig_title (str): Title drawn on the figure.
+            fig_dir (str): Full path of the png to write.
+        """
         plt.figure(figsize=(8, 5))
         for i_conn in conn_list:
             label = "Port_" + str(i_conn)
@@ -278,7 +493,17 @@ class TouchStone:
         plt.close()
 
     def convert_snp_se2mm(self):
-        """Convert SNP files from single-ended to mixed-mode Spara."""
+        """Convert SNP files from single-ended to mixed-mode Spara.
+
+        The single-ended ports are first renumbered into the pair order given
+        by ``MM_ORDER_IN_SE``, since the conversion expects each differential
+        pair to sit in consecutive positions, and the result is written
+        alongside the input file in a ``Mixed_Mode`` sub-folder.
+
+        Returns:
+            skrf.Network: The mixed-mode network. The differential ports come
+            first, the common-mode ports second.
+        """
         sedata = self.nw.copy()
         se_port_index = list(range(self.port_num))
         mm_port_index = self.conn_dict["MM_ORDER_IN_SE"]
@@ -296,7 +521,21 @@ class TouchStone:
         return sedata
 
     def __get_mixedmode_network(self):
-        """Get mixedmode network if necessary."""
+        """Get mixedmode network if necessary.
+
+        The conversion is skipped unless the spec type actually asks for a
+        mixed-mode result, so a single-ended run does not pay for it.
+
+        Returns:
+            skrf.Network: The converted mixed-mode network, or the untouched
+            single-ended network when no conversion was needed.
+
+        Note:
+            Only the keys in ``MM_KEY`` trigger the conversion, and ``TDR_MM``
+            is not among them. A spec type asking for ``TDR_MM`` without also
+            asking for ``IL_MM`` or ``RL_MM`` therefore reaches
+            :meth:`plot_tdr_mm` with a single-ended network.
+        """
         process_key = self.spec_type["POST_PROCESS_KEY"]
         se2mm = False
         for key in process_key:
@@ -309,7 +548,21 @@ class TouchStone:
         return mmdata
 
     def __split_mixedmode_network(self, nw_mm):
-        """Split one mixed-mode network into four sub-networks."""
+        """Split one mixed-mode network into four sub-networks.
+
+        Slices the S-parameter block into its quadrants, relying on the
+        differential ports occupying the first half of the port range and the
+        common-mode ports the second half.
+
+        Args:
+            nw_mm (numpy.ndarray): The mixed-mode S-parameters, indexed
+                ``[freq, output, input]``.
+
+        Returns:
+            tuple: A 4-tuple ``(nw_dd, nw_dc, nw_cd, nw_cc)``, being the
+            differential, the two mode-conversion, and the common-mode
+            quadrants.
+        """
         mm_port_num = int(self.port_num / 2)
         nw_dd = nw_mm[:, 0:mm_port_num, 0:mm_port_num]
         nw_dc = nw_mm[:, 0:mm_port_num, mm_port_num:]
@@ -318,14 +571,42 @@ class TouchStone:
         return nw_dd, nw_dc, nw_cd, nw_cc
 
     def __get_short_block(self):
-        """Get a 1-port short block based on the input touchstone file."""
+        """Get a 1-port short block based on the input touchstone file.
+
+        Built from a scikit-rf sample short and resampled onto this file's
+        frequency axis, so it can be connected to a port of this network.
+
+        Returns:
+            skrf.Network: A one-port short on the same frequency axis.
+        """
         short0 = rf.data.wr2p2_short
         short0.resample(self.nw.frequency.npoints)
         short0.f = self.f
         return short0
 
     def __get_rlc(self, nw, i_port, snp_dir):
-        """Return RLC at specified frequencies."""
+        """Return RLC at specified frequencies.
+
+        Each element is read at the frequency where it dominates the impedance:
+        resistance low enough to be flat, capacitance where the rail still
+        looks capacitive, and inductance where it already looks inductive.
+
+        Args:
+            nw (skrf.Network): The network to read.
+            i_port (int): Zero-based port index.
+            snp_dir (str): Path of the source snp file, quoted in the
+                interpolation warnings.
+
+        Returns:
+            tuple: A 3-tuple ``(r_dc, l_hf, c_lf)``, being the resistance at
+            1 kHz in mOhm, the inductance at 100 MHz in pH, and the capacitance
+            at 10 kHz in nF.
+
+        Note:
+            The reactance conversions use ``3.14`` for pi, so the reported
+            inductance and capacitance carry a systematic error of about
+            0.05 percent.
+        """
         # extract R@1KHz
         freq_tgt = 1e3
         r_dc, _ = self.__get_z_interp(nw, freq_tgt, i_port, i_port, snp_dir)
@@ -341,8 +622,34 @@ class TouchStone:
         return r_dc, l_hf, c_lf
 
     def __get_z_interp(self, nw, freq_tgt, i_port, j_port, snp_name):
-        """Input network class, target freq, and target port.
-        Output interpolated z in Ohm and angle in unwrapped rad.
+        """Interpolate the impedance at a target frequency.
+
+        Input network class, target freq, and target port. Output interpolated
+        z in Ohm and angle in unwrapped rad.
+
+        The simulated frequency points rarely land exactly on the target, so a
+        bracketing point is searched for by stepping away from the target in
+        10 percent increments, up to ten steps, and the value is then
+        interpolated between the two. The magnitude is interpolated in log-log
+        space, matching how impedance behaves across decades, while the angle
+        is interpolated linearly.
+
+        Args:
+            nw (skrf.Network): The network to read.
+            freq_tgt (float): Target frequency in Hz.
+            i_port (int): Zero-based output port index.
+            j_port (int): Zero-based input port index.
+            snp_name (str): Name quoted in the warnings.
+
+        Returns:
+            tuple: A 2-tuple ``(z_interp, ang_interp)``, being the impedance
+            magnitude in Ohm and the unwrapped angle in rad.
+
+        Note:
+            If no bracketing point is found within ten steps, a warning is
+            printed and the value is extrapolated from the two closest points
+            instead. The result is still returned, so the caller cannot tell
+            this happened.
         """
         z_1 = nw[str(freq_tgt)].z_mag[0, i_port, j_port]
         f_1 = nw[str(freq_tgt)].f[0]
@@ -409,7 +716,17 @@ class TouchStone:
 
     @classmethod
     def from_list(cls, info_list):
-        """Input a list of dict and output a list of snp class."""
+        """Input a list of dict and output a list of snp class.
+
+        Args:
+            info_list (list of dict): One ``info`` dict per touchstone file, as
+                described in :meth:`__init__`.
+
+        Returns:
+            list of TouchStone: One instance per input dict, in order. Every
+            file is read as its instance is built, so the mixed-mode
+            conversions all happen here.
+        """
         ts_list = []
         for info in info_list:
             ts_list.append(cls(info))
