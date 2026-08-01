@@ -16,8 +16,24 @@ import sys
 
 
 def setup_logger(log_dir, log_header):
-    """This will create sipi_log with output to a log file and to the
-    concole.
+    """Create a logger writing to both a log file and the console.
+
+    Propagation to the root logger is disabled, so records emitted here do not
+    reach handlers installed by the application embedding OpenSIPI.
+
+    Args:
+        log_dir (str): Full path of the log file to write, including the file
+            name.
+        log_header (str): Logger name, shown in each record and used to
+            retrieve the same logger again through ``logging.getLogger``.
+
+    Returns:
+        logging.Logger: The configured logger, at level ``DEBUG``.
+
+    Note:
+        If the log file cannot be opened, the error is printed and the logger
+        is returned with no handlers attached rather than raising, so a
+        failure to log never aborts an extraction.
     """
 
     sipi_log = logging.getLogger(log_header)

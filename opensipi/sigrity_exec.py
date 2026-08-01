@@ -9,6 +9,23 @@ Last updated on Jul. 29, 2024
 
 Description:
     This module contains all Classes used to execute Cadence Sigrity Tools.
+
+    An "executor" owns one extraction from end to end: it builds the tcl
+through a matching "modeler" from ``opensipi.sigrity_tools``, launches the
+solver, watches it, checks the result, and files the output away. The executor
+decides what happens and when; the modeler decides what the tcl says.
+
+    The four classes form an inheritance chain rather than four independent
+implementations, since the extraction types differ only in places.
+``PowersiPdnExec`` carries the shared machinery, and each subclass overrides the
+handful of methods that differ, being which modeler to build, how strict the
+port format check is, and where the result files land.
+
+    Progress is tracked through ``.done`` marker files rather than through the
+solver's exit status, because the solver is launched detached and runs in its
+own process. That is also why the monitor watches the process list to notice a
+solver that died, and why an interrupted run can be resumed: whatever already
+has a marker is simply not redone.
 """
 
 import math
@@ -52,9 +69,32 @@ class PowersiPdnExec:
     """This class parses input info as executable tcl scripts, launches
     simulations, conducts formality checks and etc. This class is only
     for PDN extractions using PowerSI.
+
+    Also the base class of the other three executors, holding everything they
+    share.
+
+    Attributes:
+        report_type (str): Which report template the results feed, here
+            ``"PDN"``. Overridden by the subclasses.
+        spd_proj (SpdModeler): The modeler that writes the tcl.
+        run_info (dict): The three run descriptors, being ``run_info_parent``,
+            ``run_info_check``, and ``run_info_sim``, one per stage of a run.
+        result_sub_dirs (dict): Result sub-folders to post-process, by name.
     """
 
     def __init__(self, info):
+        """Set up the executor and generate the tcl scripts.
+
+        The modeler is built here and writes out its tcl immediately, so by the
+        time this returns the scripts are on disk and the run descriptors point
+        at them.
+
+        Args:
+            info (dict): The ``model_info`` dict assembled by
+                ``Platform._Platform__sigrity_parser``, holding the parsed
+                input, the run folder paths, the tool config directory, and the
+                run logger.
+        """
         self.UNIKEY = SIM_INPUT_COL_TITLE[0]
         self.CKBOX = SIM_INPUT_COL_TITLE[1]
         self.SPECTYPE = SIM_INPUT_COL_TITLE[2]
@@ -105,13 +145,33 @@ class PowersiPdnExec:
     # Class initialization related method
     # ==========================================================================
     def _get_spd_proj(self, info):
-        """initialize spd proj"""
+        """Initialize spd proj.
+
+        Overridden by each subclass to pair the executor with its modeler.
+
+        Args:
+            info (dict): The ``model_info`` dict.
+
+        Returns:
+            PowersiPdnModeler: The modeler, with its tcl already written.
+        """
         inst = PowersiPdnModeler(info)
         inst.mk_tcl()
         return inst
 
     def __get_net_comp_names_from_sheet(self):
-        """prepare net and component names in the gSheet."""
+        """Prepare net and component names in the gSheet.
+
+        Collects every net and component name the input names, flattened across
+        all rows of all simulations and deduplicated, so the initial check can
+        compare them against the design file in one pass. The port count each
+        simulation declares is counted here too, for the later comparison
+        against what the solver actually built.
+
+        The results are stored on the instance as ``_nets_pos``, ``_nets_neg``,
+        ``_main_comp_pos``, ``_main_comp_neg``, ``_sns_comp_pos``,
+        ``_sns_comp_neg``, and ``_port_count_defined``.
+        """
         input = self.sim_input
         input_key = list(input.keys())
         nets_pos_all = []
@@ -169,7 +229,18 @@ class PowersiPdnExec:
         self.lg.debug("Net and component names have been extracted from gSheet.")
 
     def __get_run_info(self):
-        """create run info out of a spd object."""
+        """Create run info out of a spd object.
+
+        A run has three stages, being building the parent model, checking the
+        per-simulation models, and running them. Each needs the same four
+        things: which tcl to run, where to run it, which keys it covers, and
+        which marker file signals it finished. Describing them uniformly is
+        what lets one monitor drive all three.
+
+        Returns:
+            dict: The three descriptors, keyed ``"run_info_parent"``,
+            ``"run_info_check"``, and ``"run_info_sim"``.
+        """
         spd_proj = self.spd_proj
         run_info_parent = {
             "tool": spd_proj.SOLVER,  # to be verified
@@ -206,7 +277,33 @@ class PowersiPdnExec:
     # Externally available methods
     # ==========================================================================
     def run(self, mntr_info):
-        """run sigrity simulations."""
+        """Run sigrity simulations.
+
+        The whole extraction, in order: build the parent model, check the input
+        against the real design, build and check the per-simulation models,
+        optionally pause, run the solver, then collect the results and write
+        the config files the report stage reads.
+
+        Args:
+            mntr_info (dict): Monitor related information.
+
+                * ``email`` (str): Notification address. An empty string
+                  disables the notifications.
+                * ``op_pause_after_model_check`` (int, optional): ``1`` to
+                  pause after model check. Absent or ``0`` runs straight
+                  through.
+
+        Returns:
+            tuple: A 2-tuple ``(result_config_dir, report_config_dir)``, the
+            full paths of the two yaml files handing state to the report stage.
+
+        Raises:
+            IllegalInputFormat: If the input sheets hold a format error.
+            NoExistingNames: If a net or component named in the input is absent
+                from the design.
+            UnequalPortCounts: If the solver built a different number of ports
+                than the input declared.
+        """
         # create the parent spd file
         self.__mk_parent_spd(mntr_info)
         # initial check for the input formats and existence of the comps/nets
@@ -230,8 +327,15 @@ class PowersiPdnExec:
     # run() related methods
     # ==========================================================================
     def __mk_parent_spd(self, mntr_info):
-        """build the parent spd, extract necessary info to compare against
-        the input info.
+        """Build the parent spd, extract necessary info to compare against the input.
+
+        The parent model is the design converted once, with the stackup,
+        materials, and settings applied. Every per-simulation model is derived
+        from it, so it is built once and reused. An existing one is left alone,
+        which is what makes a resumed run skip straight past this stage.
+
+        Args:
+            mntr_info (dict): Monitor related information.
         """
         # create parent spd first if unavailable
         if not os.path.exists(self.spd_proj.parent_spd_dir):
@@ -241,7 +345,21 @@ class PowersiPdnExec:
             self.lg.debug("The parent .spd already exists. " + "No action is taken.")
 
     def _model_check(self, mntr_info):
-        """check the model port setup, cap model etc."""
+        """Check the model port setup, cap model etc.
+
+        Builds one model per simulation and then verifies two things the solver
+        will not complain about on its own: that every declared port actually
+        got created, and that the capacitors use SPICE models rather than the
+        cruder RLC ones. A port mismatch stops the run, a capacitor one only
+        warns.
+
+        Args:
+            mntr_info (dict): Monitor related information.
+
+        Raises:
+            UnequalPortCounts: If the built port count differs from the
+                declared one for any simulation.
+        """
         key2sim = self.run_info["run_info_check"]["key2sim"]
         # create model check spd files for each sim
         if key2sim != []:
@@ -254,7 +372,11 @@ class PowersiPdnExec:
             self.lg.debug("Key is empty! No check is conducted!")
 
     def __model_xtract(self, mntr_info):
-        """extract S parameters and relocate results."""
+        """Extract S parameters by running the solver on the checked models.
+
+        Args:
+            mntr_info (dict): Monitor related information.
+        """
         key2sim = self.run_info["run_info_sim"]["key2sim"]
         if key2sim != []:
             self._run_monitor(mntr_info, self.run_info["run_info_sim"])
@@ -262,7 +384,26 @@ class PowersiPdnExec:
             self.lg.debug("Key is empty! No sim is conducted!")
 
     def _run_monitor(self, mntr_info, run_info):
-        """monitor the scripts running process."""
+        """Monitor the scripts running process.
+
+        The solver is launched detached, so progress is followed by watching
+        for the ``.done`` marker of each key and this call blocks until they
+        all appear. Every two minutes the process list is checked as well: a
+        solver that has vanished without leaving a marker has crashed, and
+        after three consecutive such observations it is relaunched. After three
+        relaunches the key is written off, its marker is written by hand so the
+        wait can proceed, and the run continues with the remaining keys rather
+        than stalling forever.
+
+        Args:
+            mntr_info (dict): Monitor related information.
+            run_info (dict): One of the three run descriptors built by
+                ``__get_run_info``.
+
+        Note:
+            A skipped key still gets a ``.done`` marker, so a later resumed run
+            treats it as finished and will not retry it.
+        """
         # define variables from external inputs
         email = mntr_info["email"]
 
@@ -393,7 +534,23 @@ class PowersiPdnExec:
             )
 
     def __run_tcl(self, info):
-        """run tcl scripts."""
+        """Run tcl scripts.
+
+        Builds and launches the OS-specific command line that starts the
+        solver on a tcl script. The call returns as soon as the solver is
+        launched, not when it finishes, and the command string is returned so
+        the monitor can reissue it to restart a crashed solver.
+
+        Args:
+            info (dict): One of the three run descriptors, read for its
+                ``tool``, ``tool_config``, and ``tcl_dir``.
+
+        Returns:
+            str: The command that was launched.
+
+        Raises:
+            UnboundLocalError: On an OS that is neither ``nt`` nor ``posix``.
+        """
         # define variables from external inputs
         tool = info["tool"]
         tool_config = info["tool_config"]
@@ -445,7 +602,17 @@ class PowersiPdnExec:
         return command
 
     def __pause_for_user_inputs(self):
-        """Pause the scripts and wait for user's inputs."""
+        """Pause the scripts and wait for user's inputs.
+
+        Gives the user a chance to inspect or hand-edit the checked models
+        before the solver runs. Answering no exits the process outright rather
+        than returning.
+
+        Note:
+            Both comparisons use ``("Y" or "YES")`` and ``("N" or "NO")``,
+            which evaluate to ``"Y"`` and ``"N"``, so a typed ``yes`` or ``no``
+            matches neither and the prompt simply repeats.
+        """
         yorn = ""
         while yorn.upper() != ("Y" or "YES"):
             yorn = input("Do you want to continue with simulations? [y/n]\n")
@@ -453,7 +620,18 @@ class PowersiPdnExec:
                 exit(0)
 
     def _init_check(self):
-        """initial check of the input data."""
+        """Initial check of the input data.
+
+        Runs before any model is built, since a typo in a net name is far
+        cheaper to catch here than after a solver run. Two things are checked:
+        that the input is well formed, and that every net and component it
+        names actually exists in the design. Either failing stops the run.
+
+        Raises:
+            IllegalInputFormat: If the input holds a format error.
+            NoExistingNames: If a net or component named in the input is absent
+                from the design.
+        """
         self.lg.debug("Initial check starts.")
         # check the format of the input info
         format_errors = self._check_input_format()
@@ -474,7 +652,16 @@ class PowersiPdnExec:
         self.lg.debug("Initial check completes successfully.")
 
     def _export_result_config(self):
-        """export result config yaml for easy snp processing."""
+        """Export result config yaml for easy snp processing.
+
+        Records what the post-processing stage needs, being the port
+        connectivity, which keys were enabled, each key's spec type, and where
+        the results and plots live. Writing it to disk is what lets the report
+        stage run separately from the extraction.
+
+        Returns:
+            str: Full path of the yaml file written.
+        """
         result_config_dir = self.result_dir + "results_config.yaml"
         data = {
             "CONNECTIVITY": self.spd_proj.CONNECTIVITY,
@@ -487,7 +674,17 @@ class PowersiPdnExec:
         return result_config_dir
 
     def _export_report_config(self):
-        """export report config yaml for easy report generation."""
+        """Export report config yaml for easy report generation.
+
+        Records the run details the report header shows, along with the user ID
+        and optional company logo read from ``usr.yaml``.
+
+        Returns:
+            str: Full path of the yaml file written.
+
+        Raises:
+            KeyError: If ``usr.yaml`` holds no ``USR_ID``.
+        """
         usr_dir = self.tool_config_dir + "usr.yaml"
         usr_info = load_yaml_to_dict(usr_dir)
         # company logo image
@@ -518,7 +715,16 @@ class PowersiPdnExec:
     # =============================================================================
 
     def _check_input_format(self):
-        """check the input format errors"""
+        """Check the input format errors.
+
+        Every simulation is checked against every rule and all the complaints
+        are gathered, rather than stopping at the first, so the user can fix a
+        sheet in one pass.
+
+        Returns:
+            list of str: One message per problem found. Empty if the input is
+            well formed.
+        """
         input = self.sim_input
         input_key = list(input.keys())
         error_all = []
@@ -552,7 +758,18 @@ class PowersiPdnExec:
         return error_all
 
     def __check_key_format(self, i_key):
-        """check the format of the key"""
+        """Check the format of the key.
+
+        The key becomes part of a file name and of a tcl identifier, so the
+        characters that would break either are rejected.
+
+        Args:
+            i_key (str): The simulation key to check.
+
+        Returns:
+            str: One line per illegal character found, or an empty string if
+            the key is fine.
+        """
         illegal_symbol = [" ", "-", "$"]
         error_list = [
             '[Error] "' + symbol + '"' + " is not allowed in the key: " + i_key
@@ -563,7 +780,20 @@ class PowersiPdnExec:
         return error
 
     def __check_spec_type_format(self, info, i_key, col):
-        """check the format for the spec type"""
+        """Check the format for the spec type.
+
+        A simulation must name exactly one spec type. It is written on the
+        first row only, so across a multi-row simulation the non-empty values
+        must collapse to a single distinct one.
+
+        Args:
+            info (list of dict): The rows of one simulation.
+            i_key (str): The simulation key, quoted in the message.
+            col (str): The spec type column title.
+
+        Returns:
+            str: The complaint, or an empty string if the spec type is fine.
+        """
         error = ""
         if len(info) == 1:
             if info[0][col] == "":
@@ -591,7 +821,17 @@ class PowersiPdnExec:
         return error
 
     def __check_net_format(self, info, i_key, col):
-        """check if net is empty"""
+        """Check if net is empty.
+
+        Args:
+            info (list of dict): The rows of one simulation.
+            i_key (str): The simulation key, quoted in the message.
+            col (str): The net column title to check.
+
+        Returns:
+            str: The complaint, or an empty string if at least one net is
+            named.
+        """
         net = self._get_unique_items_in_col(info, col)
         if net == []:
             error = ("{} -> Col {} ->\n{}").format(
@@ -602,7 +842,18 @@ class PowersiPdnExec:
         return error
 
     def _check_port_format(self, info, i_key, pos_col, neg_col):
-        """check the format of the port input"""
+        """Check the format of the port input.
+
+        Args:
+            info (list of dict): The rows of one simulation.
+            i_key (str): The simulation key, quoted in the message.
+            pos_col (str): Positive side column title.
+            neg_col (str): Negative side column title.
+
+        Returns:
+            str: The complaints for this simulation, one row per line, or an
+            empty string if the ports are fine.
+        """
         error = []
         i = 1
         for i_row in info:
@@ -617,7 +868,27 @@ class PowersiPdnExec:
         return error_key
 
     def _check_comp_format(self, col_p, col_n, i):
-        """check the input format of the components"""
+        """Check the input format of the components.
+
+        Two rules for PDN. ``LUMPED`` may only appear on the negative side and
+        only for a single component. And an empty negative side means a
+        component port, which is defined by one component alone, so a list
+        there is rejected. An area port is recognized by its ``Rec{...}`` form
+        and exempted from the second rule.
+
+        Overridden by :meth:`PowersiIOExec._check_comp_format`, which adds the
+        stricter IO rules.
+
+        Args:
+            col_p (str): The positive side cell.
+            col_n (str): The negative side cell.
+            i (int): One-based row number within the simulation, quoted in the
+                messages.
+
+        Returns:
+            list of str: One message per problem found. Empty if the row is
+            fine.
+        """
         error_msg = []
         # lumped ports
         if ("LUMPED" in col_n.upper()) and (";" in col_n):
@@ -656,8 +927,12 @@ class PowersiPdnExec:
         return error_msg
 
     def __compare_net_comp_names(self):
-        """compare net and component names between gSheet input
-        and a real design file.
+        """Compare net and component names between input and the design file.
+
+        Returns:
+            list of str: One ``"key -> Col x -> name"`` line per name that the
+            input uses but the design does not have. Empty if everything was
+            found.
         """
         # compare net names
         unfound_net = self.__compare_net()
@@ -666,7 +941,12 @@ class PowersiPdnExec:
         return unfound_net + unfound_comp
 
     def __compare_net(self):
-        """compare net names and return the unfound ones"""
+        """Compare the input net names against the design file.
+
+        Returns:
+            list of str: One line per net that the input uses but the design
+            does not have, for both the positive and the negative column.
+        """
         # import net names from all_nets.info
         nets_spd = txtfile_rd(self.spd_proj.netinfo_dir).strip().split(" ")
         # positive
@@ -677,7 +957,20 @@ class PowersiPdnExec:
         return unfound_net_pos + unfound_net_neg
 
     def __compare_netname(self, name_spd, name_gsheet, col):
-        """compare net names and return the unfound ones"""
+        """Compare one column's net names against the design file.
+
+        Missing names are traced back to the simulations that used them, so the
+        message tells the user which row to go and fix rather than just which
+        name was wrong.
+
+        Args:
+            name_spd (list of str): Net names present in the design.
+            name_gsheet (list of str): Net names used by the input.
+            col (str): Column title, quoted in the messages.
+
+        Returns:
+            list of str: One ``"key -> Col x -> name"`` line per missing name.
+        """
         unfound_item = []
         match_tf = [(item in name_spd) for item in name_gsheet]
         if False in match_tf:
@@ -694,7 +987,12 @@ class PowersiPdnExec:
         return unfound_item
 
     def __compare_comp(self):
-        """compare component names and return the unfound ones"""
+        """Compare the input component names against the design file.
+
+        Returns:
+            list of str: One line per component that the input uses but the
+            design does not have, across all four port columns.
+        """
         # import component names from all_comps.info
         comps_spd = txtfile_rd(self.spd_proj.compinfo_dir).strip().split(" ")
         # main component positive
@@ -714,7 +1012,16 @@ class PowersiPdnExec:
         )
 
     def __compare_compname(self, name_spd, name_gsheet, col):
-        """compare component names and return the unfound ones"""
+        """Compare one column's component names against the design file.
+
+        Args:
+            name_spd (list of str): Component names present in the design.
+            name_gsheet (list of str): Component names used by the input.
+            col (str): Column title, quoted in the messages.
+
+        Returns:
+            list of str: One ``"key -> Col x -> name"`` line per missing name.
+        """
         unfound_item = []
         match_tf = [(item in name_spd) for item in name_gsheet]
         if False in match_tf:
@@ -737,7 +1044,19 @@ class PowersiPdnExec:
         return unfound_item
 
     def __get_comp_list(self, raw_data):
-        """get a list of components"""
+        """Get a list of components out of one port cell.
+
+        Only the component names are wanted, so each semicolon-separated group
+        is reduced to its first comma-separated item. An area port names no
+        component and is skipped.
+
+        Args:
+            raw_data (str): A port cell.
+
+        Returns:
+            list of str: The component names, unstripped and possibly
+            duplicated.
+        """
         comp = []
         comp_grp = raw_data.split(";")
         for i_grp in comp_grp:
@@ -749,7 +1068,16 @@ class PowersiPdnExec:
         return comp
 
     def _get_unique_items_in_col(self, data, col):
-        """get unique non-empty item names for the whole column"""
+        """Get unique non-empty item names for the whole column.
+
+        Args:
+            data (list of dict): The rows of one simulation.
+            col (str or int): Column title, or index when the rows are lists.
+
+        Returns:
+            list: The comma-separated items of that column across all rows,
+            stripped, deduplicated, and with the empty ones dropped.
+        """
         merged_nets = []
         for i_list in data:
             merged_nets.extend(striped_str2list(i_list[col], ","))
@@ -760,7 +1088,18 @@ class PowersiPdnExec:
         return unique_nets
 
     def _get_unique_comps_in_col(self, data, col):
-        """Get unique non-empty component names for the whole column."""
+        """Get unique non-empty component names for the whole column.
+
+        Only the component name of each cell is kept, the pins are dropped.
+
+        Args:
+            data (list of dict): The rows of one simulation.
+            col (str): Column title.
+
+        Returns:
+            list of str: The component names, deduplicated and with the empty
+            ones dropped.
+        """
         merged_comps = []
         for i_list in data:
             refdes, _ = self._get_refdes_n_pins(i_list[col])
@@ -770,7 +1109,15 @@ class PowersiPdnExec:
         return unique_comps
 
     def _get_refdes_n_pins(self, in_str):
-        """Break the input string to refdes string and pin lists"""
+        """Break the input string to refdes string and pin lists.
+
+        Args:
+            in_str (str): A ``"RefDes, pin, pin, ..."`` cell.
+
+        Returns:
+            tuple: A 2-tuple ``(refdes, pins)``. ``pins`` is empty when the
+            cell names a component alone.
+        """
         tmp_list = striped_str2list(in_str, ",")
         refdes = tmp_list[0]
         pins = tmp_list[1:]
@@ -780,7 +1127,15 @@ class PowersiPdnExec:
     # __model_check() related methods
     # ==========================================================================
     def __compare_port_count(self):
-        """compare port counts between defined and the actually generated."""
+        """Compare port counts between defined and the actually generated.
+
+        A port the solver quietly failed to build would leave results that
+        cannot be post-processed as expected, so a mismatch stops the run.
+
+        Raises:
+            UnequalPortCounts: If any simulation's built port count differs
+                from its declared one.
+        """
         # extract the counts of the actually generated ports in a spd
         port_count_spd = self.__get_port_count_spd()
         # compare
@@ -794,7 +1149,14 @@ class PowersiPdnExec:
             raise UnequalPortCounts(self.lg, unequal_ports_key)
 
     def __get_port_count_spd(self):
-        """extract the counts of the actually generated ports in spd file"""
+        """Extract the counts of the actually generated ports in spd file.
+
+        Read from the ``Ports_...csv`` files the model check stage exported,
+        by counting the lines starting with ``Port_``.
+
+        Returns:
+            dict: Simulation key to the number of ports actually built.
+        """
         input_key = list(self.sim_input.keys())
         port_count_spd = {}
         for i_key in input_key:
@@ -808,8 +1170,18 @@ class PowersiPdnExec:
         return port_count_spd
 
     def __check_cap_model(self):
-        """Check if SPICE models are used for a cap. The assumption
-        is that a SPICE model will be longer than 5 lines.
+        """Check if SPICE models are used for a cap.
+
+        The assumption is that a SPICE model will be longer than 5 lines, so
+        the check is a line count on each capacitor's exported model: one line
+        means no model at all, five or fewer means a simple RLC model. Simple
+        RLC models are typically inaccurate, but not wrong enough to stop the
+        run, so this only warns.
+
+        Note:
+            Capacitors are recognized by their RefDes prefix, ``C`` by default.
+            A design naming them otherwise needs ``CapRefDes`` set, or every
+            simulation is reported as having no caps.
         """
         input_key = list(self.sim_input.keys())
         cap_model_lines = {}
@@ -852,7 +1224,13 @@ class PowersiPdnExec:
     # __model_xtract() related methods
     # ==========================================================================
     def _relocate_results(self):
-        """relocate sim results to the result directory if unavailable."""
+        """Relocate sim results to the result directory if unavailable.
+
+        Copies rather than moves, so the solver's working folder stays intact,
+        and sorts the touchstone files into sub-folders by kind, being the raw
+        and the DC-fitted S-parameters. Files already at the destination are
+        left alone.
+        """
         # make folders in the result directory
         make_dir(self.snp_s_dir)
         make_dir(self.snp_dcfitted_dir)
@@ -880,7 +1258,13 @@ class PowersiPdnExec:
                 self._mk_file_copy(bbs_dir, self.bbs_s_dir, bbs_item)"""
 
     def _mk_file_copy(self, dir_old, dir_new, item):
-        """make a copy to a folder if the file doesn't exist there"""
+        """Make a copy to a folder if the file doesn't exist there.
+
+        Args:
+            dir_old (str): Separator-ending source folder.
+            dir_new (str): Separator-ending destination folder.
+            item (str): File name.
+        """
         if not os.path.exists(dir_new + item):
             shutil.copy(dir_old + item, dir_new)
             self.lg.debug(item + " has been copied to " + dir_new)
@@ -891,7 +1275,19 @@ class PowersiPdnExec:
     # __export_result_config() related methods
     # ==========================================================================
     def __get_spectype_dict(self):
-        """Output the spectype per sim key."""
+        """Output the spectype per sim key.
+
+        Resolves each simulation's spec type name to its full definition, so
+        the post-processing stage does not have to look it up again.
+
+        Returns:
+            dict: Simulation key to its spec type definition, holding ``FREQ``
+            and ``POST_PROCESS_KEY``. Covers every simulation, enabled or not.
+
+        Raises:
+            KeyError: If a simulation names a spec type that is neither
+                built in nor user-defined.
+        """
         all_input = self.all_input
         out_dict = {}
         for key_name in all_input:
@@ -905,9 +1301,18 @@ class PowersiIOExec(PowersiPdnExec):
     """This class parses input info as executable tcl scripts, launches
     simulations, conducts formality checks and etc. This class is only
     for LSIO extractions using PowerSI.
+
+    Differs from the PDN base only in the report template it feeds, the modeler
+    it pairs with, and a stricter port format check.
     """
 
     def __init__(self, info):
+        """Set up the executor and switch the report type to IO.
+
+        Args:
+            info (dict): The ``model_info`` dict, as in
+                :meth:`PowersiPdnExec.__init__`.
+        """
         super().__init__(info)
         self.report_type = "IO"
 
@@ -915,13 +1320,35 @@ class PowersiIOExec(PowersiPdnExec):
     # Class initialization related method
     # ==========================================================================
     def _get_spd_proj(self, info):
-        """initialize spd proj"""
+        """Initialize spd proj.
+
+        Args:
+            info (dict): The ``model_info`` dict.
+
+        Returns:
+            PowersiIOModeler: The modeler, with its tcl already written.
+        """
         inst = PowersiIOModeler(info)
         inst.mk_tcl()
         return inst
 
     def _check_comp_format(self, col_p, col_n, i):
-        """check the input format of the components"""
+        """Check the input format of the components, with the IO rules.
+
+        Adds one rule to the PDN checks: an IO port built from several
+        components must name pins for each of them. A bare component would
+        otherwise be taken to mean all its pins on the enabled nets, which is
+        meaningful for a power rail but not for a signal.
+
+        Args:
+            col_p (str): The positive side cell.
+            col_n (str): The negative side cell.
+            i (int): One-based row number within the simulation.
+
+        Returns:
+            list of str: One message per problem found. Empty if the row is
+            fine.
+        """
         error_msg = []
         # lumped ports
         if ("LUMPED" in col_n.upper()) and (";" in col_n):
@@ -992,9 +1419,22 @@ class ClarityExec(PowersiIOExec):
     """This class parses input info as executable tcl scripts, launches
     simulations, conducts formality checks and etc. This class is only
     for HSIO extractions using PowerSI.
+
+    Clarity is a 3D FEM solver, so it names its output differently from
+    PowerSI and produces no DC-fitted variant. Only the modeler and the result
+    handling differ from the LSIO parent.
+
+    Note:
+        The class docstring says PowerSI, but HSIO is run by Clarity.
     """
 
     def __init__(self, info):
+        """Set up the executor and narrow the results to the S-parameters.
+
+        Args:
+            info (dict): The ``model_info`` dict, as in
+                :meth:`PowersiPdnExec.__init__`.
+        """
         super().__init__(info)
         self.result_sub_dirs = {
             "snp_s_dir": self.snp_s_dir,
@@ -1004,13 +1444,24 @@ class ClarityExec(PowersiIOExec):
     # Class initialization related method
     # ==========================================================================
     def _get_spd_proj(self, info):
-        """initialize spd proj"""
+        """Initialize spd proj.
+
+        Args:
+            info (dict): The ``model_info`` dict.
+
+        Returns:
+            ClarityModeler: The modeler, with its tcl already written.
+        """
         inst = ClarityModeler(info)
         inst.mk_tcl()
         return inst
 
     def _relocate_results(self):
-        """relocate sim results to the result directory"""
+        """Relocate sim results to the result directory.
+
+        Clarity names its fitted output ``_FIT`` rather than ``_DCfitted``, and
+        emits a separate DC file, so the sorting differs from the PowerSI one.
+        """
         # make folders in the result directory
         make_dir(self.snp_s_dir)
         make_dir(self.snp_dc_dir)
@@ -1026,9 +1477,22 @@ class ClarityExec(PowersiIOExec):
 class PowerdcExec(PowersiPdnExec):
     """This class parses input info as executable tcl scripts, launches
     simulations. This class is only for DCR extractions using PowerDC.
+
+    DCR differs more than the other types do. It yields one resistance per
+    simulation rather than a touchstone file, so there is no S-parameter
+    post-processing, no port count check, and the report is a csv.
+
+    Attributes:
+        RESIS_CSV (str): Name of the raw resistance csv PowerDC writes.
     """
 
     def __init__(self, info):
+        """Set up the executor for a csv result rather than touchstone files.
+
+        Args:
+            info (dict): The ``model_info`` dict, as in
+                :meth:`PowersiPdnExec.__init__`.
+        """
         super().__init__(info)
         # define variables
         self.csv_dir = self.sim_dir + "CSVFolder" + SL
@@ -1043,13 +1507,28 @@ class PowerdcExec(PowersiPdnExec):
     # Class initialization related method
     # ==========================================================================
     def _get_spd_proj(self, info):
-        """initialize spd proj"""
+        """Initialize spd proj.
+
+        Args:
+            info (dict): The ``model_info`` dict.
+
+        Returns:
+            PowerdcModeler: The modeler, with its tcl already written.
+        """
         inst = PowerdcModeler(info)
         inst.mk_tcl()
         return inst
 
     def _model_check(self, mntr_info):
-        """check the model port setup, cap model etc."""
+        """Build the check models, without the port and cap checks.
+
+        DCR defines sinks and VRMs rather than ports, and runs no
+        S-parameter extraction, so neither the port count comparison nor the
+        capacitor model check applies.
+
+        Args:
+            mntr_info (dict): Monitor related information.
+        """
         key2sim = self.run_info["run_info_check"]["key2sim"]
         # create model check spd files for each sim
         if key2sim != []:
@@ -1058,18 +1537,38 @@ class PowerdcExec(PowersiPdnExec):
             self.lg.debug("Key is empty! No check is conducted!")
 
     def _relocate_results(self):
-        """relocate sim results to the result directory"""
+        """Relocate sim results to the result directory.
+
+        A DCR run produces one resistance csv rather than a set of touchstone
+        files, so there is a single file to copy and no sorting to do.
+        """
         # find and make a copy of resistance measurement csv file
         self._mk_file_copy(self.csv_dir, self.result_dir, self.RESIS_CSV)
 
     def _export_result_config(self):
-        """export result config yaml for easy snp processing."""
+        """Reduce the raw resistances to the report csv.
+
+        There are no touchstone files to post-process, so no result config is
+        written. This override instead does the DCR equivalent of
+        post-processing and returns an empty path, which the report stage
+        recognizes and skips.
+
+        Returns:
+            str: An empty string.
+        """
         self.__process_dcr()
         result_config_dir = ""
         return result_config_dir
 
     def _export_report_config(self):
-        """export report config yaml for easy report generation."""
+        """Export report config yaml for easy report generation.
+
+        As the PDN version, except the report is a csv rather than a pdf and no
+        company logo is used.
+
+        Returns:
+            str: Full path of the yaml file written.
+        """
         usr_dir = self.tool_config_dir + "usr.yaml"
         usr_info = load_yaml_to_dict(usr_dir)
         report_config_dir = self.report_dir + "report_config.yaml"
@@ -1090,7 +1589,24 @@ class PowerdcExec(PowersiPdnExec):
         return report_config_dir
 
     def __process_dcr(self):
-        """process the raw DCR values and save in a new csv file."""
+        """Process the raw DCR values and save in a new csv file.
+
+        PowerDC names its measurements after the sink and VRM it found rather
+        than after the simulation key, so each raw row has to be matched back
+        to a key. A direct ``RESI_[key]`` name is used when present; otherwise
+        a row is claimed by the key whose positive net, negative net, and sink
+        component all appear in the row name. Each simulation reports its worst
+        resistance, since that is the corner the design has to meet.
+
+        Returns:
+            dict: Simulation key to its worst resistance in mOhm, as a string.
+
+        Note:
+            The fallback match is by substring, so a net or component name that
+            is a substring of another can claim the wrong row. Each raw row is
+            consumed once, so a mismatch also leaves a later key unmatched and
+            silently absent from the report.
+        """
         report_csv = self.report_dir + "Report.csv"
         # rename to sim key, extract the worst DCR in mOhm
         key_net_ckt = self.__get_key_net_ckt()
@@ -1125,7 +1641,15 @@ class PowerdcExec(PowersiPdnExec):
         return new_result
 
     def __get_key_net_ckt(self):
-        """Get a list of key, net, and ckt info."""
+        """Get a list of key, net, and ckt info.
+
+        Gathers what each simulation can be recognized by in the raw PowerDC
+        output.
+
+        Returns:
+            list of list: One ``[rail_key, net_pos, net_neg, sink]`` per
+            simulation, the last three being lists of names.
+        """
         sim_keys = self.sim_input.keys()
         key_net_ckt = []
         for rail_key in sim_keys:
