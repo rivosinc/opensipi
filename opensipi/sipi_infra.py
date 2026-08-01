@@ -9,6 +9,18 @@ Last updated on Nov. 20, 2023
 
 Description:
     This module serves as the platform of the OpenSIPI application.
+
+    ``Platform`` is the spine of the application. It owns the run folder tree,
+reads the input, picks the solver executor matching the extraction type, drives
+the run, post-processes the results, and builds the report. The integrated
+flows in ``opensipi.integrated_flows`` are thin sequences of its methods.
+
+    The methods are order-dependent rather than independent. Construction reads
+the input and creates the folders, ``drop_dsn_file`` settles which design is
+being simulated, ``parser`` chooses the executor, and only then can ``run`` and
+``report`` do anything. Between stages the state is handed over through yaml
+config files written into the run folder, which is what lets a later stage be
+re-run on its own against an existing ``Run_...`` folder.
 """
 
 import glob
@@ -58,9 +70,59 @@ from opensipi.util.logs import setup_logger
 
 
 class Platform:
-    """platform class for the opensipi applications."""
+    """platform class for the opensipi applications.
+
+    Attributes:
+        INPUT_TYPE (str): Upper-cased input type, ``"CSV"`` or ``"GSHEET"``.
+        RUN_NAME (str): Name of this run, being the extraction type and a time
+            stamp, or the caller-supplied name when resuming.
+        input_data (dict): The parsed input sheets. See
+            ``opensipi.file_in.FileIn``.
+        lg (logging.Logger): The run logger, writing to the run's ``Log``
+            folder.
+        DSN_NAME (str): File name of the design being simulated. Empty until
+            :meth:`drop_dsn_file` runs.
+        LOC_DSN_RAW (str): File name of the local design copy. Empty until
+            :meth:`drop_dsn_file` runs.
+    """
 
     def __init__(self, info):
+        """Build the run folder tree, read the input, and start logging.
+
+        A fair amount happens here. The folder tree is created, the input
+        sheets are read and parsed, and a logger is opened, so an instance is
+        never in a half-built state. Logging can only start once the log
+        folder exists, so anything going wrong before that point is reported
+        by print rather than to the log file.
+
+        Args:
+            info (dict): Input related information.
+
+                * ``input_type`` (str): ``"csv"`` or ``"gsheet"``, matched
+                  case-insensitively.
+                * ``input_dir`` (str): Directory holding the input csv folders.
+                  Required when ``input_type`` is ``"csv"``.
+                * ``input_folder`` (str): Name of the folder inside
+                  ``input_dir`` holding this extraction's sheets. Required when
+                  ``input_type`` is ``"csv"``.
+                * ``input_url`` (str): URL of the input Google Sheet. Required
+                  when ``input_type`` is ``"gsheet"``.
+                * ``proj_dir`` (str): The project directory. Optional when
+                  ``input_dir`` is given, since it is then derived from it.
+                * ``output_type`` (str, optional): ``"local"`` or ``"gdrive"``.
+                  Defaults to ``"local"``.
+                * ``op_run_name`` (str, optional): Time stamp of an existing
+                  ``Run_...`` folder to resume into. Omit or leave empty to
+                  start a new run.
+
+        Raises:
+            NoProjDirDefined: If neither ``proj_dir`` nor ``input_dir`` is
+                given.
+            NoneUniqueKeyDefined: If a sim sheet defines a duplicated
+                ``Unique_Key``.
+            MaterialsMustBeDefinedBeforeStackup: If the ``Materials`` section
+                is placed at or below the ``Stackup`` section.
+        """
         self.INPUT_TYPE = info["input_type"].upper()
         # module internal dir
         self.INSTALL_ROOT_DIR, self.SCRIPTS_DIR, self.TEMPLATE_DIR = get_dir()
@@ -108,12 +170,34 @@ class Platform:
     # Class initialization related method
     # ==========================================================================
     def _read_inputs(self):
-        """read input data based on input_type"""
+        """Read input data based on input_type.
+
+        Returns:
+            dict: The parsed input, with the keys ``"sim_input"``,
+            ``"all_input"``, ``"stackup_info"``, ``"settings"``, and
+            ``"spectype_info"``.
+        """
         input_data = FileIn(self.filein_info).INPUT_DATA
         return input_data
 
     def _get_proj_dir(self, info):
-        """get the project directory."""
+        """Get the project directory.
+
+        An explicit ``proj_dir`` wins. Otherwise the project directory is
+        taken to be two levels above ``input_dir``, matching the expected
+        ``project / Sim_Input / extraction folder`` layout.
+
+        Args:
+            info (dict): The constructor's ``info`` dict.
+
+        Returns:
+            tuple: A 2-tuple ``(proj_dir, proj_name)``, the separator-ending
+            project directory and its last path component.
+
+        Raises:
+            NoProjDirDefined: If neither ``proj_dir`` nor ``input_dir`` is
+                given.
+        """
         if "proj_dir" in info:
             proj_dir = info["proj_dir"]
         elif "input_dir" in info:
@@ -125,7 +209,24 @@ class Platform:
         return proj_dir, proj_name
 
     def _get_filein_info(self, info):
-        """get the dict used to query input data."""
+        """Get the dict used to query input data.
+
+        Normalizes the caller's paths and, for the Google Sheet path, folds in
+        the credentials read from ``config_gsuites.yaml``, so the reader gets
+        one uniform dict either way.
+
+        Args:
+            info (dict): The constructor's ``info`` dict.
+
+        Returns:
+            dict: The ``info`` dict for ``opensipi.file_in.FileIn``.
+
+        Raises:
+            UnboundLocalError: If ``INPUT_TYPE`` is neither ``"CSV"`` nor
+                ``"GSHEET"``.
+            FileNotFoundError: If the Google Sheet path is taken and
+                ``config_gsuites.yaml`` is missing.
+        """
         if self.INPUT_TYPE == "CSV":
             input_dir = expand_home_dir(slash_ending(rectify_dir(info["input_dir"])))
             input_dir = input_dir + info["input_folder"] + SL
@@ -146,7 +247,18 @@ class Platform:
         return input_info
 
     def _get_fileout_info(self, info):
-        """get the dict used to store output data."""
+        """Get the dict used to store output data.
+
+        The Google credentials are only read when an upload is actually
+        requested, so a purely local run needs no ``config_gsuites.yaml``.
+
+        Args:
+            info (dict): The constructor's ``info`` dict.
+
+        Returns:
+            dict: Output settings. Holds ``output_type`` alone for a local run,
+            plus the account and Drive IDs for a ``gdrive`` run.
+        """
         if "output_type" in info:
             output_type = info["output_type"]
         else:
@@ -168,7 +280,21 @@ class Platform:
         return drive_info
 
     def _mk_proj_dir(self, proj_dir, run_name):
-        """create project folders and get critical dir"""
+        """Create project folders and get critical dir.
+
+        Every folder of the run tree is created here, so the later stages can
+        write without checking. Existing folders are left alone, which is what
+        makes resuming into an existing run folder work.
+
+        Args:
+            proj_dir (str): Separator-ending project directory.
+            run_name (str): Name of this run, used for the ``Run_...`` folder.
+
+        Returns:
+            tuple: A 10-tuple of separator-ending paths, being
+            ``(dsn_dir, loc_dsn_dir, loc_script_dir, sim_dir, result_dir,
+            report_dir, log_dir, plt_dir, run_key_dir, model_check_dir)``.
+        """
         # create Sub-folders
         dsn_dir = proj_dir + "Dsn" + SL
         make_dir(dsn_dir)
@@ -216,7 +342,28 @@ class Platform:
     # Externally available methods
     # ==========================================================================
     def drop_dsn_file(self, xtract_tool=None):
-        """ask the user to drop the design file in a specific dir"""
+        """Ask the user to drop the design file in a specific dir.
+
+        Blocks at the terminal until the user confirms the file is in place,
+        then looks for design files of an accepted type. Exactly one is used;
+        if several are found the user is asked to pick. A local working copy is
+        made at the end, so the original is never touched by the solver.
+
+        Args:
+            xtract_tool (str, optional): The extraction tool in use. ``.spd``
+                is only accepted for ``"Sigrity"``, since an spd is already a
+                Sigrity simulation model rather than a raw design.
+
+        Raises:
+            NoDsnFound: If the design directory holds no file of an accepted
+                type.
+            AttributeError: If ``xtract_tool`` is left at ``None``.
+
+        Note:
+            The confirmation loop compares against ``("Y" or "YES")``, which
+            evaluates to ``"Y"``, so a typed ``yes`` is not accepted and the
+            prompt repeats.
+        """
         # define variables
         dsn_dir = self.DSN_DIR
         # accepted design file types
@@ -283,7 +430,26 @@ class Platform:
         self.__mk_local_dsn_copy()
 
     def parser(self, input_data):
-        """Parse the input data based on the tool in use."""
+        """Parse the input data based on the tool in use.
+
+        Works out which simulation keys still need doing, by looking for the
+        ``.done`` markers left by earlier runs, and builds the solver executor
+        matching the extraction type. Must not be called before the design file
+        has been settled by :meth:`drop_dsn_file`.
+
+        Args:
+            input_data (dict): The parsed input, normally ``self.input_data``.
+                Modified in place, gaining the ``"dcr_dict"``, ``"key2check"``,
+                and ``"key2sim"`` keys.
+
+        Returns:
+            object: The solver executor, being one of ``PowersiPdnExec``,
+            ``ClarityExec``, ``PowersiIOExec``, or ``PowerdcExec``.
+
+        Raises:
+            UnboundLocalError: If ``ExtractionTool`` is not ``Sigrity``, or if
+                ``ExtractionType`` is not one of the four supported values.
+        """
         xtract_tool = input_data["settings"]["EXTRACTIONTOOL"].upper()
         xtract_type = input_data["settings"]["EXTRACTIONTYPE"].upper()
         sim_input = input_data["sim_input"]
@@ -302,12 +468,43 @@ class Platform:
         return sim_exec
 
     def run(self, sim_exec, mntr_info):
-        """Run sims and return the result info."""
+        """Run sims and return the result info.
+
+        Delegates to the executor, which generates the scripts, builds and
+        checks the models, runs the solver, and collects the results. This is
+        the long-running step of a flow.
+
+        Args:
+            sim_exec (object): The executor returned by :meth:`parser`.
+            mntr_info (dict): Monitor related information.
+
+                * ``email`` (str): Notification address. Not enabled yet.
+                * ``op_pause_after_model_check`` (int, optional): ``1`` to
+                  pause after model check, ``0`` to run straight through.
+
+        Returns:
+            tuple: A 2-tuple ``(result_config_dir, report_config_dir)``, the
+            full paths of the two yaml files handing state to the report stage.
+        """
         result_config_dir, report_config_dir = sim_exec.run(mntr_info)
         return result_config_dir, report_config_dir
 
     def process_snp(self, result_config_dir):
-        """Post-process results and generate plots."""
+        """Post-process results and generate plots.
+
+        Every touchstone file named by the result config is processed according
+        to its simulation's spec type, writing the figures into the run's
+        ``Plot`` folder.
+
+        Args:
+            result_config_dir (str): Full path to the result configuration
+                file written by :meth:`run`.
+
+        Returns:
+            dict: Result sub-folder name to a dict of simulation key to that
+            simulation's post-processing output. See
+            ``opensipi.touchstone.TouchStone.auto_process``.
+        """
         result_config = load_yaml_to_dict(expand_home_dir(result_config_dir))
         result_dict = {}
         for key in result_config["result_sub_dirs"].keys():
@@ -315,7 +512,25 @@ class Platform:
         return result_dict
 
     def report(self, result_config_dir, report_config_dir):
-        """Generate a report out of the processed results."""
+        """Generate a report out of the processed results.
+
+        Post-processes the results, then fills the pdf template matching the
+        report type recorded in the report config.
+
+        Args:
+            result_config_dir (str): Full path to the result configuration
+                file.
+            report_config_dir (str): Full path to the report configuration
+                file.
+
+        Returns:
+            str: Full path of the pdf report written.
+
+        Note:
+            A ``DCR`` report type produces no report. Both branches for it are
+            still placeholders, so the path is logged and returned without a
+            file having been written.
+        """
         # load report config file
         report_config = load_yaml_to_dict(expand_home_dir(report_config_dir))
         # pdf template selection based on report type
@@ -348,7 +563,27 @@ class Platform:
         return dir
 
     def report_html(self, result_config_dir, report_config_dir):
-        """Generate a HTML report out of the processed results."""
+        """Generate a HTML report out of the processed results.
+
+        The html alternative to :meth:`report`. It renders a jinja2 template
+        into html and then converts that to pdf, so both formats end up in the
+        run's ``Report`` folder. Requires ``wkhtmltopdf`` to be installed for
+        the conversion.
+
+        Args:
+            result_config_dir (str): Full path to the result configuration
+                file.
+            report_config_dir (str): Full path to the report configuration
+                file.
+
+        Returns:
+            str: Full path of the pdf report written. The html sits beside it
+            under the same name.
+
+        Note:
+            The integrated flows call :meth:`report` rather than this method,
+            so the html path is only taken when a caller asks for it directly.
+        """
         # load report config file
         report_config = load_yaml_to_dict(expand_home_dir(report_config_dir))
         # pdf template selection based on report type
@@ -388,7 +623,20 @@ class Platform:
         return pdf_dir
 
     def export_upload_config(self, report_config_dir):
-        """export the upload config file."""
+        """Export the upload config file.
+
+        Folds the output settings together with the run details taken from the
+        report config into one yaml file, so the upload stage needs nothing but
+        that file.
+
+        Args:
+            report_config_dir (str): Full path to the report configuration
+                file.
+
+        Returns:
+            str: Full path of the upload configuration file written into the
+            run's ``Report`` folder.
+        """
         report_config = load_yaml_to_dict(report_config_dir)
         upload_config = self.fileout_info
         upload_config["proj_name"] = report_config["proj_name"]
@@ -406,8 +654,15 @@ class Platform:
         return upload_config_dir
 
     def upload2drive(self, upload_config_dir):
-        """upload results and reports to online storage based on the
-        config file
+        """Upload results and reports to online storage based on the config file.
+
+        Args:
+            upload_config_dir (str): Full path to the upload configuration
+                file written by :meth:`export_upload_config`.
+
+        Note:
+            Only ``gdrive`` is implemented. Any other ``output_type``,
+            including the default ``local``, is a no-op.
         """
         upload_config = load_yaml_to_dict(upload_config_dir)
         output_type = upload_config["output_type"]
@@ -421,8 +676,24 @@ class Platform:
     # ==========================================================================
 
     def __sigrity_parser(self, input_data):
-        """Parse the input data into the format of simulations running
-        in Cadence Sigrity tools.
+        """Build the Sigrity executor for this extraction.
+
+        Parses the input data into the format of simulations running in Cadence
+        Sigrity tools. Everything the executor needs, being the parsed input,
+        the run folder paths, and the logger, is gathered into one
+        ``model_info`` dict, and the extraction type then selects which
+        executor class receives it.
+
+        Args:
+            input_data (dict): The parsed input, already carrying the
+                ``"key2check"`` and ``"key2sim"`` keys.
+
+        Returns:
+            object: ``PowersiPdnExec`` for PDN, ``ClarityExec`` for HSIO,
+            ``PowersiIOExec`` for LSIO, or ``PowerdcExec`` for DCR.
+
+        Raises:
+            UnboundLocalError: If the extraction type is none of those four.
         """
         model_info = {
             "stackup_info": input_data["stackup_info"],
@@ -462,7 +733,19 @@ class Platform:
         return sig_exec
 
     def __get_key2sim(self, run_dir, keys_all):
-        """get the run key to be simulated"""
+        """Get the run key to be simulated.
+
+        A finished simulation leaves a ``.done`` marker in its folder, so the
+        keys still to do are whatever has no marker yet. This is what lets an
+        interrupted run be resumed without redoing the finished simulations.
+
+        Args:
+            run_dir (str): Folder to look for the ``.done`` markers in.
+            keys_all (iterable of str): Every simulation key of this run.
+
+        Returns:
+            list of str: The keys with no ``.done`` marker.
+        """
         # keys already done
         done_dir = glob.glob(run_dir + "*.done")
         keys_done = [item.replace(run_dir, "").replace(".done", "") for item in done_dir]
@@ -472,7 +755,25 @@ class Platform:
         return key2sim
 
     def __get_all_dcr_dict(self, sim_input):
-        """Get all workbook names before ."""
+        """Group the DCR simulation keys by their sheet.
+
+        A DCR extraction is run once per sheet rather than once per simulation
+        key, since all the sinks of a sheet share one solver setup, so the keys
+        are grouped by the sheet prefix they carry.
+
+        Args:
+            sim_input (dict): The enabled simulations, keyed
+                ``"[SHEET]_[Unique_Key]"``.
+
+        Returns:
+            tuple: A 2-tuple ``(keys_dict, keys_all)``, mapping each sheet
+            prefix to its simulation keys, and listing the distinct sheet
+            prefixes.
+
+        Note:
+            The grouping matches with ``in`` rather than by prefix, so a sheet
+            name that is a substring of another also collects the other's keys.
+        """
         keys_tmp = [i_key.split("_")[0] for i_key in sim_input]
         keys_all = unique_list(keys_tmp)
         keys_dict = {}
@@ -484,7 +785,12 @@ class Platform:
     # drop_dsn_file() related methods
     # ==========================================================================
     def __mk_local_dsn_copy(self):
-        """make a local copy of the design file"""
+        """Make a local copy of the design file.
+
+        The solver works on this copy, so the dropped original is left
+        untouched. An existing copy is kept as it is, which is what lets a
+        resumed run reuse a model that was already built or hand-edited.
+        """
         loc_dsn = self.LOC_DSN_DIR + self.LOC_DSN_RAW
         if not os.path.exists(loc_dsn):
             shutil.copyfile(self.DSN_DIR + self.DSN_NAME, loc_dsn)
@@ -496,7 +802,15 @@ class Platform:
     # process_snp() related methods
     # ==========================================================================
     def __snp_plot_xtract(self, key, result_config):
-        """"""
+        """Post-process every touchstone file of one result sub-folder.
+
+        Args:
+            key (str): Result sub-folder name, e.g. ``"SNP_S"``.
+            result_config (dict): The loaded result configuration.
+
+        Returns:
+            dict: Simulation key to that simulation's post-processing output.
+        """
         plt_list = self._get_plt_list(key, result_config)
         ts_list = TouchStone.from_list(plt_list)
         output_dict = {}
@@ -505,7 +819,22 @@ class Platform:
         return output_dict
 
     def _get_plt_list(self, key, result_config):
-        """Get the plot list out of a given directory."""
+        """Get the plot list out of a given directory.
+
+        Scans a result sub-folder for touchstone files and builds one
+        ``TouchStone`` info dict per file. The simulation key is recovered from
+        the file name, being the part before the double underscore, and files
+        whose key was not enabled in the input are skipped, so results left
+        over from an earlier run do not leak into this report.
+
+        Args:
+            key (str): Result sub-folder name, e.g. ``"SNP_S"``.
+            result_config (dict): The loaded result configuration.
+
+        Returns:
+            list of dict: One info dict per file to process, ready to be passed
+            to ``opensipi.touchstone.TouchStone``.
+        """
         plt_list = []
         snp_dir = expand_home_dir(result_config["result_sub_dirs"][key])
         plot_dir = expand_home_dir(result_config["plot_dir"])
@@ -537,7 +866,21 @@ class Platform:
     # report() related methods
     # ==========================================================================
     def __gen_pdn_report(self, pdf_report, summary_list, result_dict, dir):
-        """Generate a PDF report for PDN."""
+        """Generate a PDF report for PDN.
+
+        Extends the template in place: the summary rows go into section 0, one
+        result row per figure into the section 1 table matching that
+        post-processing key, and the figures themselves into section 2. The
+        table cells cross-reference the figures by number.
+
+        Args:
+            pdf_report (dict): The ``pdn_report`` template. Modified in place,
+                so a second call in the same process appends to the first
+                call's content.
+            summary_list (list of list of str): Run summary rows.
+            result_dict (dict): The output of :meth:`process_snp`.
+            dir (str): Full path of the pdf to write.
+        """
         pdf_report["sections"][0]["content"][0]["table"].extend(summary_list)
         # table and figures
         i = 1
@@ -573,7 +916,18 @@ class Platform:
             build_pdf(pdf_report, f)
 
     def __gen_io_report(self, pdf_report, summary_list, result_dict, dir):
-        """Generate a PDF report for IO."""
+        """Generate a PDF report for IO.
+
+        The IO counterpart of :meth:`__gen_pdn_report`. The mixed-mode keys
+        carry one more level of nesting, being a dict of mode to results, so
+        they are unpacked separately from the single-ended ones.
+
+        Args:
+            pdf_report (dict): The ``io_report`` template. Modified in place.
+            summary_list (list of list of str): Run summary rows.
+            result_dict (dict): The output of :meth:`process_snp`.
+            dir (str): Full path of the pdf to write.
+        """
         pdf_report["sections"][0]["content"][0]["table"].extend(summary_list)
         # table and figures
         i = 1
@@ -631,7 +985,18 @@ class Platform:
     def __gen_pdn_html_report(
         self, summary_list, result_dict, misc_dict, dir, pdn_report_temp="PDN_Type1.html"
     ):
-        """Generate a HTML report for PDN."""
+        """Generate a HTML report for PDN.
+
+        Args:
+            summary_list (list of list of str): Run summary rows.
+            result_dict (dict): The output of :meth:`process_snp`.
+            misc_dict (dict): Extra content, holding ``"company_logo"`` as a
+                base64 string so the logo is embedded rather than linked.
+            dir (str): Full path of the html to write.
+            pdn_report_temp (str, optional): Template file name inside the
+                package's ``templates/reports`` folder. Defaults to
+                ``"PDN_Type1.html"``.
+        """
         # prepare result list
         # result_list = []
         # for item in output_list:
@@ -654,7 +1019,18 @@ class Platform:
     def __gen_io_html_report(
         self, summary_list, result_dict, misc_dict, dir, io_report_temp="IO_Type1.html"
     ):
-        """Generate a HTML report for PDN."""
+        """Generate a HTML report for IO.
+
+        Args:
+            summary_list (list of list of str): Run summary rows.
+            result_dict (dict): The output of :meth:`process_snp`.
+            misc_dict (dict): Extra content, holding ``"company_logo"`` as a
+                base64 string.
+            dir (str): Full path of the html to write.
+            io_report_temp (str, optional): Template file name inside the
+                package's ``templates/reports`` folder. Defaults to
+                ``"IO_Type1.html"``.
+        """
         # prepare result list
         report_dict = {
             "summary_list": summary_list,
@@ -670,7 +1046,18 @@ class Platform:
             f.write(report_ctnt)
 
     def convert_html_to_pdf_report(self, html_dir, pdf_dir):
-        """Convert a html report to a pdf report."""
+        """Convert a html report to a pdf report.
+
+        Local file access is enabled so the embedded figures resolve.
+
+        Args:
+            html_dir (str): Full path of the html to read.
+            pdf_dir (str): Full path of the pdf to write.
+
+        Raises:
+            OSError: If the ``wkhtmltopdf`` binary that ``pdfkit`` drives is
+                not installed.
+        """
         options = {"page-size": "A4", "enable-local-file-access": True}
         with open(html_dir) as f:
             pdfkit.from_file(f, pdf_dir, options=options)
@@ -680,8 +1067,17 @@ class Platform:
     # ==========================================================================
 
     def __upload2gdrive(self, upload_config):
-        """upload results and reports to Google drive based on the
-        config file
+        """Upload results and reports to Google drive based on the config file.
+
+        Mirrors the run's results and report into Drive, then writes a row per
+        simulation into a per-project summary sheet, so the sheet accumulates
+        across runs. What gets uploaded depends on the extraction type: the
+        S-parameter types upload the touchstone files and the pdf report, while
+        DCR uploads nothing and only writes its resistance values into the
+        sheet.
+
+        Args:
+            upload_config (dict): The loaded upload configuration.
         """
 
         proj_name = upload_config["proj_name"]
