@@ -4,55 +4,125 @@ SPDX-FileCopyrightText: © 2024 Rivos Inc.
 
 SPDX-License-Identifier: Apache-2.0
 -->
+
 # Contributing
 
-## Preparations
+Thanks for your interest in OpenSIPI! This page gets you from a fresh clone to
+an open pull request.
 
-There are several tools to be installed first.
+By participating, you agree to abide by the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
-- `poetry`
-  - `poetry` is recommended to establish the virtual environment for developers. This simplifies the installation of OpenSIPI and ensures all developers are using exactly the same versions of Python, modules, and packages so that compatibility won't be a concern. Please read [here](https://python-poetry.org/docs/) to install `poetry`.
-- `reuse`
-  - `reuse` is used to manage the licensing for each specific file in this project. Please read [here](https://reuse.software/faq/#install-tool) to install `reuse`.
-- `pre-commit`
-  - `pre-commit` is used to ensure some basic commit checks are done locally. Please read [here](https://github.com/riscv/docs-spec-template?tab=readme-ov-file#enabling-pre-commit-checks-locally) to install `pre-commit`.
+**Contents**
 
-## Make Contributions
+- [Prerequisites](#prerequisites)
+- [Set Up Your Fork](#set-up-your-fork)
+- [Install the Environment](#install-the-environment)
+- [Configure Visual Studio Code](#configure-visual-studio-code-optional)
+- [Make Your Changes](#make-your-changes)
+- [Before You Commit](#before-you-commit)
+- [Open a Pull Request](#open-a-pull-request)
 
-Assume the contributors are familiar with the basics of git and GitHub.com. To contribute to the codes and documentation of this project, please follow the detailed instructions [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) to fork a repo to your own GitHub account, clone your fork to your local computer, and configure git to sync your fork with the upstream repo. Push updates to your own fork first and create a pull request (PR) to merge your updates to the original repo.
+## Prerequisites
 
-There are various ways to work on the project. If you happen to use [Visual Studio Code](https://code.visualstudio.com/) (VSC) as your integrated development environment (IDE), here is how to enable the `poetry` virtual environment. In VSC, open the `opensipi` root dir, where `pyproject.toml` file is located. In the VSC terminal window, use the following command to install the virtual environment for `opensipi` project.
+Three tools need to be installed first.
+
+| Tool         | Why it is needed                                                                                                                                          | Install                                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `poetry`     | Establishes the virtual environment. This simplifies installing OpenSIPI and ensures every developer uses exactly the same Python, module, and package versions, so compatibility is not a concern. | [python-poetry.org](https://python-poetry.org/docs/)                                                                |
+| `reuse`      | Manages the licensing header of each file in the project.                                                                                                 | [reuse.software](https://reuse.software/faq/#install-tool)                                                          |
+| `pre-commit` | Runs the basic commit checks locally, the same ones CI runs on your pull request.                                                                         | [instructions](https://github.com/riscv/docs-spec-template?tab=readme-ov-file#enabling-pre-commit-checks-locally)   |
+
+## Set Up Your Fork
+
+This guide assumes you are familiar with the basics of git and GitHub.
+
+1. [Fork the repo](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
+   to your own GitHub account.
+2. Clone your fork to your local computer.
+3. Configure git to sync your fork with the upstream repo.
+
+You push updates to your own fork and then open a pull request to merge them
+into the original repo.
+
+## Install the Environment
+
+From the `opensipi` root directory, where `pyproject.toml` lives:
 
 ```shell
 poetry install
 ```
 
-It's recommended to re-install `opensipi` each time your fork is synced with the origin repo.
+> [!TIP]
+> Re-run `poetry install` each time you sync your fork with the upstream repo,
+> so your environment picks up any dependency changes.
 
-Next, in the VSC terminal window, type in the following command to activate the virtual environment.
+Then activate the virtual environment:
 
 ```shell
 poetry shell
 ```
 
-Now click the default interpreter at bottom right corner of VSC as shown below.
+## Configure Visual Studio Code (optional)
 
-![image](/docs/Figures/VSC_BR.png)
+There are various ways to work on the project. If you use
+[Visual Studio Code](https://code.visualstudio.com/) as your IDE, here is how to
+point it at the `poetry` virtual environment.
 
-A dialog pops up in the top center of VSC and prompt you to select from the available interpreters. Choose the one containing "opensipi" in the name.
+1. Open the `opensipi` root directory in VS Code and run `poetry install` and
+   `poetry shell` in its terminal, as above.
+2. Click the current interpreter in the bottom right corner.
 
-![image](/docs/Figures/VSC_top.png)
+   ![Interpreter selector in the VS Code status bar](/docs/Figures/VSC_BR.png)
+
+3. A dialog pops up in the top center. Choose the interpreter with `opensipi` in
+   its name.
+
+   ![Interpreter list at the top of VS Code](/docs/Figures/VSC_top.png)
 
 You're all set to make changes!
 
-Once you're done with changes. Use the below command to check if all files under `opensipi` root dir carry a license. This step is optional. You need to run it only if you add additional files to the root dir.
+## Make Your Changes
+
+A few conventions worth knowing before you start:
+
+- **Formatting is automated.** `black` (line length 100), `isort`, `flake8`,
+  `flynt`, and `pyupgrade` run as pre-commit hooks, so match the surrounding
+  style and let the tools handle the rest.
+- **Every file needs an SPDX license header.** `reuse` enforces this. Copy the
+  header from a neighbouring file when you add a new one.
+- **Bump the version in two places.** `version` in `pyproject.toml` and
+  `__version__` in `opensipi/__init__.py` must stay in sync.
+- **There is no automated test suite.** `tests/` is gitignored and not part of
+  the repo, so verify your change by running the
+  [Olympus example](/examples/Olympus) or with a targeted manual check, and say
+  what you did in the pull request.
+
+## Before You Commit
+
+Check that every file under the `opensipi` root directory carries a license.
+This is only necessary if you added files.
 
 ```shell
 reuse lint
 ```
 
-Before committing your updates, run the pre-commit checks as shown below.
+Then run the pre-commit checks.
 
 ```shell
 pre-commit run
 ```
+
+`pre-commit run` only checks staged files. To check everything:
+
+```shell
+pre-commit run --all-files
+```
+
+## Open a Pull Request
+
+Push your branch to your fork and open a pull request against `main`. The
+`pre-commit` workflow runs automatically on every pull request, so a clean local
+run means a clean CI run.
+
+In the description, say what changed, why, and how you verified it.
