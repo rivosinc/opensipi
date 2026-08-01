@@ -36,6 +36,7 @@ Details of the input format, the platform internals, and the public API.
 | [Mid-layer Platform](/docs/Home/Mid-layer-Platform.md)                     | The run folder structure and the step-by-step extraction workflow.        |
 | [Back-end Simulation Solvers](/docs/Home/Back-end-Simulation-Solvers.md)   | Which solver is used for which extraction type.                           |
 | [User Manual](/docs/Home/User-Manual.md)                                   | API reference index.                                                      |
+| [API Reference](/docs/Home/API-Reference.md)                               | Generated reference for public modules, classes, methods, and functions.  |
 | [Integrated Flows](/docs/Home/Integrated-Flows.md)                         | The top-level entry points, e.g. `sim2report()`.                          |
 | [Classes](/docs/Home/Classes.md)                                           | The `Platform` class and its methods.                                     |
 

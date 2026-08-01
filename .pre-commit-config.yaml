@@ -5,6 +5,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 repos:
+  - repo: local
+    hooks:
+      - id: docgen
+        name: regenerate API reference from docstrings
+        entry: python3 -m opensipi.util.docgen
+        language: system
+        pass_filenames: false
+        files: ^opensipi/.*\.py$
+
   - repo: https://github.com/pre-commit/pre-commit-hooks.git
     rev: v6.0.0
     hooks:
