@@ -20,6 +20,7 @@ the `opensipi_config` folder and the YAML files it must contain.
 | -------------------------------------------------- | ------------------------------------------------------------------------ |
 | [Integrated Flows](/docs/Home/Integrated-Flows.md) | The top-level entry points that run an extraction end to end.           |
 | [Classes](/docs/Home/Classes.md)                   | The `Platform` class and its methods, for building a custom flow.       |
+| [API Reference](/docs/Home/API-Reference.md)       | Generated from docstrings for every public module, class, and function. |
 
 Most users only need an integrated flow. Reach for `Platform` directly when you want to
 drive the individual steps yourself.
