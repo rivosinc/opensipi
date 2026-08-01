@@ -100,15 +100,18 @@ worked example (input CSVs, launch scripts, and sample output reports).
 
 ## Dev workflow & conventions
 
-- **Environment:** Poetry. `poetry install`, then `poetry shell`. The project
-  targets Python `^3.10`.
+- **Environment:** Poetry. Run `poetry install --with dev`, then use
+  `poetry run <command>` inside the managed environment. The project targets
+  Python `^3.10`.
 - **Formatting/linting:** enforced by pre-commit — `black` (line length 100),
   `isort` (black profile), `flake8`, `flynt`, `pyupgrade`, `prettier` (YAML).
   Run `pre-commit run` before committing.
 - **Licensing:** every file must carry an SPDX header (Apache-2.0). Managed by
-  `reuse` — run `reuse lint` after adding files. There is **no CI test suite**;
-  `tests/` is gitignored and not part of the repo. Verify changes by running the
-  example flow or targeted manual checks.
+  `reuse` — run `reuse lint` after adding files.
+- **Testing:** pytest tests live in `tests/test_*.py` and run in a dedicated CI
+  workflow. Use `poetry run pytest -m "not slow"` for the normal suite and
+  `poetry run pytest --cov=opensipi --cov-report=term-missing` for the coverage
+  baseline. Run `poetry run pytest -m slow` separately when slow tests exist.
 - **Contribution model:** fork → PR (this is a public GitHub project under
   `rivosinc/opensipi`). See `CONTRIBUTING.md`.
 - **Versioning:** bump `version` in `pyproject.toml` AND `__version__` in
@@ -125,3 +128,48 @@ worked example (input CSVs, launch scripts, and sample output reports).
   correctness from the generated Tcl, the input parsing, and post-processing logic.
 - Active development focus (per recent commits) is on port/net handling in
   `sigrity_tools.py` (e.g. differential ports, nearby-ground-node detection).
+
+## Testing policy
+
+- Generate small CSV, YAML, text, image, and network fixtures under pytest's
+  `tmp_path`; do not modify `examples/` or add large fixture archives for unit
+  tests.
+- Keep Matplotlib headless with `MPLBACKEND=Agg`. Assert plot names, labels, data,
+  and save targets rather than comparing PNG bytes.
+- Mock only external or slow boundaries after understanding their contracts:
+  licensed solver processes, Google clients, terminal prompts, and PDF binaries.
+  Prefer real pure helpers and temporary filesystem behavior.
+- Use shared factories from `tests/conftest.py` for minimal `FileIn`, modeler,
+  executor, `TouchStone`, and `Platform` instances when constructors would require
+  external configuration.
+- A confirmed production defect may use
+  `pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG: ...")` with
+  the correct desired assertion. Missing credentials, binaries, or fixtures are
+  documented below, not skipped or xfailed.
+- `opensipi/autopwt` is omitted from the current coverage scope. Do not silently
+  broaden that omission to other package modules.
+
+## Testing gaps and future fixtures
+
+The normal pytest suite intentionally has no licensed tools, secrets, network
+access, browser authentication, interactive prompts, or external PDF processes.
+Future integration coverage needs:
+
+- Licensed Cadence Sigrity `powersi`, `clarity3dlayout`, and `powerdc` binaries and
+  licenses, including a controlled `SIGRITY_EDA_DIR`.
+- A fake solver/process harness that writes deterministic outputs and `.done`
+  markers for `_run_monitor`, restart, resume, and process-wait behavior.
+- Sanitized `all_nets.info`, `all_comps.info`, `Ports_*.csv`, `Caps_*.csv`, DCR
+  results, expected Tcl, and result-relocation fixtures captured from a real run.
+- Minimal checked-in `opensipi_config` fixtures for `config_sigrity.yaml`,
+  `config_linux.yaml`, `usr.yaml`, and `config_gsuites.yaml`, with no secrets.
+- Separate Google service-account and browser-auth integration coverage for Drive
+  and Sheets. Live calls must never run in normal unit tests.
+- `wkhtmltopdf` integration for `pdfkit` and a deterministic end-to-end PDF/report
+  fixture strategy.
+- Controlled interactive `input()` flows, wall-clock run names, OS-specific
+  command/path behavior, and a future Windows/Linux CI matrix.
+- Production remediation of mutable `pdn_report` and `io_report` globals. Until
+  then, tests and callers must deep-copy templates before isolated mutation.
+- A separate test project for `opensipi/autopwt`, including Tkinter, Google, and
+  subprocess boundaries.

@@ -50,17 +50,17 @@ into the original repo.
 From the `opensipi` root directory, where `pyproject.toml` lives:
 
 ```shell
-poetry install
+poetry install --with dev
 ```
 
 > [!TIP]
 > Re-run `poetry install` each time you sync your fork with the upstream repo,
 > so your environment picks up any dependency changes.
 
-Then activate the virtual environment:
+Run project commands through Poetry so they use the managed virtual environment:
 
 ```shell
-poetry shell
+poetry run python --version
 ```
 
 ## Configure Visual Studio Code (optional)
@@ -69,8 +69,8 @@ There are various ways to work on the project. If you use
 [Visual Studio Code](https://code.visualstudio.com/) as your IDE, here is how to
 point it at the `poetry` virtual environment.
 
-1. Open the `opensipi` root directory in VS Code and run `poetry install` and
-   `poetry shell` in its terminal, as above.
+1. Open the `opensipi` root directory in VS Code and run
+   `poetry install --with dev` in its terminal, as above.
 2. Click the current interpreter in the bottom right corner.
 
    ![Interpreter selector in the VS Code status bar](/docs/Figures/VSC_BR.png)
@@ -93,10 +93,9 @@ A few conventions worth knowing before you start:
   header from a neighbouring file when you add a new one.
 - **Bump the version in two places.** `version` in `pyproject.toml` and
   `__version__` in `opensipi/__init__.py` must stay in sync.
-- **There is no automated test suite.** `tests/` is gitignored and not part of
-  the repo, so verify your change by running the
-  [Olympus example](/examples/Olympus) or with a targeted manual check, and say
-  what you did in the pull request.
+- **Add tests for new behavior.** Tests live under `tests/` and use pytest.
+  Keep normal tests hermetic: mock licensed solvers, Google services, interactive
+  prompts, and external PDF processes rather than requiring them locally or in CI.
 
 ## Before You Commit
 
@@ -107,22 +106,34 @@ This is only necessary if you added files.
 reuse lint
 ```
 
+Run the automated tests and, when changing covered behavior, review the coverage
+report:
+
+```shell
+poetry run pytest -m "not slow"
+poetry run pytest --cov=opensipi --cov-report=term-missing
+```
+
+Tests marked `slow` are excluded from the normal command and can be run separately
+with `poetry run pytest -m slow`. Coverage is currently reported as a baseline;
+there is no minimum threshold.
+
 Then run the pre-commit checks.
 
 ```shell
-pre-commit run
+poetry run pre-commit run
 ```
 
 `pre-commit run` only checks staged files. To check everything:
 
 ```shell
-pre-commit run --all-files
+poetry run pre-commit run --all-files
 ```
 
 ## Open a Pull Request
 
 Push your branch to your fork and open a pull request against `main`. The
-`pre-commit` workflow runs automatically on every pull request, so a clean local
-run means a clean CI run.
+`pre-commit` and `pytest` workflows run automatically on every pull request, so
+run both local checks before pushing.
 
 In the description, say what changed, why, and how you verified it.
