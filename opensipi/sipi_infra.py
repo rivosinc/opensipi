@@ -26,9 +26,9 @@ re-run on its own against an existing ``Run_...`` folder.
 import glob
 import os
 import shutil
+import subprocess
 
 import jinja2
-import pdfkit
 from pdfme import build_pdf
 
 from opensipi import __version__
@@ -1048,19 +1048,30 @@ class Platform:
     def convert_html_to_pdf_report(self, html_dir, pdf_dir):
         """Convert a html report to a pdf report.
 
-        Local file access is enabled so the embedded figures resolve.
+        JavaScript and local file access are disabled. Report assets must be
+        embedded in the HTML, and the converter is invoked without a shell.
 
         Args:
             html_dir (str): Full path of the html to read.
             pdf_dir (str): Full path of the pdf to write.
 
         Raises:
-            OSError: If the ``wkhtmltopdf`` binary that ``pdfkit`` drives is
-                not installed.
+            OSError: If the ``wkhtmltopdf`` binary is not installed.
+            subprocess.CalledProcessError: If conversion fails.
         """
-        options = {"page-size": "A4", "enable-local-file-access": True}
-        with open(html_dir) as f:
-            pdfkit.from_file(f, pdf_dir, options=options)
+        subprocess.run(
+            [
+                "wkhtmltopdf",
+                "--page-size",
+                "A4",
+                "--disable-local-file-access",
+                "--disable-javascript",
+                os.path.abspath(html_dir),
+                os.path.abspath(pdf_dir),
+            ],
+            check=True,
+            shell=False,
+        )
 
     # ==========================================================================
     # upload2drive() related methods

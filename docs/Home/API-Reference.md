@@ -1539,7 +1539,8 @@ def convert_html_to_pdf_report(self, html_dir, pdf_dir)
 
 Convert a html report to a pdf report.
 
-Local file access is enabled so the embedded figures resolve.
+JavaScript and local file access are disabled. Report assets must be
+embedded in the HTML, and the converter is invoked without a shell.
 
 **Args:**
 
@@ -1548,8 +1549,8 @@ Local file access is enabled so the embedded figures resolve.
 
 **Raises:**
 
-OSError: If the `wkhtmltopdf` binary that `pdfkit` drives is
-    not installed.
+OSError: If the `wkhtmltopdf` binary is not installed.
+subprocess.CalledProcessError: If conversion fails.
 
 ## `opensipi.templates.temp_report`
 

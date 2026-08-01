@@ -677,25 +677,31 @@ def test_html_generator_renders_through_mocked_jinja_environment(
     assert output_path.read_text(encoding="utf-8") == "<html>report</html>"
 
 
-def test_convert_html_to_pdf_uses_expected_options_without_running_wkhtmltopdf(
+def test_convert_html_to_pdf_uses_hardened_command_without_running_wkhtmltopdf(
     monkeypatch, platform_factory, tmp_path
 ):
     html_path = tmp_path / "report.html"
     pdf_path = tmp_path / "report.pdf"
     html_path.write_text("<html>report</html>", encoding="utf-8")
-    from_file = Mock(return_value=True)
-    monkeypatch.setattr(sipi_infra.pdfkit, "from_file", from_file)
+    run = Mock()
+    monkeypatch.setattr(sipi_infra.subprocess, "run", run)
     platform = platform_factory()
 
     platform.convert_html_to_pdf_report(str(html_path), str(pdf_path))
 
-    from_file.assert_called_once()
-    html_file, passed_pdf = from_file.call_args.args
-    assert Path(html_file.name) == html_path
-    assert passed_pdf == str(pdf_path)
-    assert from_file.call_args.kwargs == {
-        "options": {"page-size": "A4", "enable-local-file-access": True}
-    }
+    run.assert_called_once_with(
+        [
+            "wkhtmltopdf",
+            "--page-size",
+            "A4",
+            "--disable-local-file-access",
+            "--disable-javascript",
+            str(html_path.resolve()),
+            str(pdf_path.resolve()),
+        ],
+        check=True,
+        shell=False,
+    )
 
 
 def test_export_upload_config_combines_fresh_output_and_report_data(
