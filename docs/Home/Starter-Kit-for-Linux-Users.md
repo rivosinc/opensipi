@@ -4,29 +4,50 @@ SPDX-FileCopyrightText: 2024 Rivos Inc.
 
 SPDX-License-Identifier: Apache-2.0
 -->
-# Overview
+
+[← Documentation Home](/docs/Home.md)
+
+# Starter Kit for Linux Users
+
+> Using Windows? See the [Starter Kit for Windows Users](/docs/Home/Starter-Kit-for-Windows-Users.md).
+
+## Overview
 
 Here is the flow to evaluate the OpenSIPI platform with the provided examples.
 
-- Download the specified design files
-- Install OpenSIPI
-- Download and revise the example configuration files and place the whole folder in the HOME directory.
-- Create a folder "SIPIProj" in any working directory
-- Download the example Olympus input files and place them in the folder "SIPIProj"
-- Run the main function
+1. [Download the design files](#1-download-the-design-files)
+2. [Install OpenSIPI](#2-install-opensipi)
+3. [Download and revise the example configuration files](#3-download-and-revise-the-example-configuration-files) — place the whole folder in the `HOME` directory
+4. [Create the folder `SIPIProj`](#4-create-folder-sipiproj) in any working directory
+5. [Download the input files](#5-download-the-input-files) — the example Olympus input files, placed in `SIPIProj`
+6. [Run the main function](#6-run-the-main-function)
 
-## Download the design files
+> [!IMPORTANT]
+> A licensed installation of the Cadence Sigrity tools is required to actually run the
+> extraction. OpenSIPI does not ship a solver.
 
-The design files used to demonstrate the application are obtained from Open Compute Project (OCP). In the [OCP Contributions](https://www.opencompute.org/contributions) webpage, search for "Intel Olympus ZTSystems" and download the board design package to work with the provided input info.
+In the paths below, `xxx/` stands for whichever working directory you chose in step 4.
+
+---
+
+## 1. Download the design files
+
+The design files used to demonstrate the application are obtained from the Open Compute
+Project (OCP). On the [OCP Contributions](https://www.opencompute.org/contributions) page,
+search for "Intel Olympus ZTSystems" and download the board design package to work with
+the provided input info.
+
 ![image](/docs/Figures/OCP_testcase.png)
 
-Unzip the downloaded design package. Choose the following layout and schematic files to work on.
+Unzip the downloaded design package. Choose the following layout and schematic files to
+work on.
 
 ![image](/docs/Figures/test_layout_sch.png)
 
-Since the project is codenamed as Olympus, why not name the simulation project as Olympus. Later you'll see Olympus is used to name the directory where your simulation files are kept.
+Since the project is codenamed Olympus, why not name the simulation project Olympus too.
+Later you'll see Olympus used to name the directory where your simulation files are kept.
 
-## Install OpenSIPI
+## 2. Install OpenSIPI
 
 Open a terminal or command window. Install or update the tool using the following command.
 
@@ -34,54 +55,82 @@ Open a terminal or command window. Install or update the tool using the followin
 pip3 install git+https://github.com/rivosinc/opensipi
 ```
 
-## Download and revise the example configuration files
+## 3. Download and revise the example configuration files
 
-After downloading the example configuration files in [a zipped package](/examples/Linux/opensipi_config.zip), unzip it and place the whole folder "opensipi_config" in the HOME directory.
+Download the example configuration files as
+[a zipped package](/examples/Linux/opensipi_config.zip), unzip it, and place the whole
+folder `opensipi_config` in the `HOME` directory.
 
-Detailed descriptions of the configuration files can be found [here](/docs/Home/Installation-and-Configuration.md). For this specific test case, the following parameters in the "config_sigrity.yaml" file have to be revised based on your available tool version and licenses.
-- SIG_VER (e.g. Sigrity2024.0)
-- SIG_LIC
+Detailed descriptions of the configuration files can be found in
+[Installation and Configuration](/docs/Home/Installation-and-Configuration.md). For this
+specific test case, the following parameters in `config_sigrity.yaml` have to be revised
+based on your available tool version and licenses.
 
-    One way to obtain the available license names is to check in the utility tool "Cadence Sigrity Suite Manager". One example is given here to demo the process. Assume that Clarity3dlayout licenses are to be queried. As shown below, launch the utility and select Clarity3DLayout. On the right side, there are three suite licenses available for 24.0 version, i.e. Clarity 3D, Clarity IC Package Extraction Suite, and Clarity PCB Extraction Suite. But these are not the exact license names used to launch the tool. Select Clarity IC Package Extraction Suite and click the below button "Who is using". In the pop-up dialog, "ICP_Extract_20" is the exact license name for Clarity IC Package Extraction Suite. Repeat the flow for the other two available licenses to get their exact names.
+- **`SIG_VER`** — e.g. `Sigrity2024.0`
+- **`SIG_LIC`** — the exact license names
+
+<details>
+<summary>How to find the exact license names</summary>
+
+One way to obtain the available license names is to check the utility tool "Cadence
+Sigrity Suite Manager". Here is an example, assuming Clarity3DLayout licenses are to be
+queried.
+
+1. Launch the utility and select **Clarity3DLayout**. On the right side there are three
+   suite licenses available for version 24.0: Clarity 3D, Clarity IC Package Extraction
+   Suite, and Clarity PCB Extraction Suite. These are **not** the exact license names used
+   to launch the tool.
+2. Select **Clarity IC Package Extraction Suite** and click the **Who is using** button
+   below.
+3. In the pop-up dialog, `ICP_Extract_20` is the exact license name for Clarity IC Package
+   Extraction Suite.
+4. Repeat for the other two available licenses to get their exact names.
 
 ![image](/docs/Figures/LicMng.png)
 
-Notice: The example AMM library file and Cadence Sigrity option files are provided as a starting point for users. They are supposed to be revised based on needs.
+</details>
 
-## Create Folder "SIPIProj"
+> [!NOTE]
+> The example AMM library file and Cadence Sigrity option files are provided as a starting
+> point. They are supposed to be revised based on your needs.
 
-In any working directory, create a new directory "SIPIProj" if not exist.
+## 4. Create folder `SIPIProj`
 
-## Download the input Files
+In any working directory, create a new directory `SIPIProj` if it does not exist.
 
-After downloading the example Olympus input files in [a zipped package](/examples/Linux/Olympus.zip), unzip it and place the whole folder "Olympus" under Folder "SIPIProj".
+## 5. Download the input files
 
-Inside Folder "Olympus", main functions are stored under Folder "Script" and input files are stored under Folder "Sim_Input". Choose one set of files to try out the OpenSIPI platform for a specific extraction goal.
+Download the example Olympus input files as
+[a zipped package](/examples/Linux/Olympus.zip), unzip it, and place the whole folder
+`Olympus` under folder `SIPIProj`.
 
-The folder structure will be created as shown below. The picture is taken from Windows OS. But the folder structure is the same.
+Inside folder `Olympus`, the main functions are stored under folder `Script` and the input
+files under folder `Sim_Input`. Choose one set of files to try out the OpenSIPI platform
+for a specific extraction goal.
+
+The folder structure will be created as shown below. The picture is taken from Windows OS,
+but the folder structure is the same.
 
 ![image](/docs/Figures/Folder_Structure_SimInput.png)
 
-The online version of the input files and main functions are listed below.
+The online versions of the input files and main functions are listed below.
 
-- PDN
-  - [Input Files](/examples/Olympus/Sim_Input/Sigrity_PDN)
-  - [Main Function](/examples/Olympus/Script/Olympus_PCB_xtractPDN.py)
-- LSIO
-  - [Input Files](/examples/Olympus/Sim_Input/Sigrity_LSIO)
-  - [Main Function](/examples/Olympus/Script/Olympus_PCB_xtractLSIO.py)
-- HSIO
-  - [Input Files](/examples/Olympus/Sim_Input/Sigrity_HSIO)
-  - [Main Function](/examples/Olympus/Script/Olympus_PCB_xtractHSIO.py)
-- DCR
-  - [Input Files](/examples/Olympus/Sim_Input/Sigrity_DCR)
-  - [Main Function](/examples/Olympus/Script/Olympus_PCB_xtractDCR.py)
+| Extraction | Input files                                              | Main function                                                            |
+| ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------ |
+| PDN        | [Sigrity_PDN](/examples/Olympus/Sim_Input/Sigrity_PDN)   | [Olympus_PCB_xtractPDN.py](/examples/Olympus/Script/Olympus_PCB_xtractPDN.py)  |
+| LSIO       | [Sigrity_LSIO](/examples/Olympus/Sim_Input/Sigrity_LSIO) | [Olympus_PCB_xtractLSIO.py](/examples/Olympus/Script/Olympus_PCB_xtractLSIO.py) |
+| HSIO       | [Sigrity_HSIO](/examples/Olympus/Sim_Input/Sigrity_HSIO) | [Olympus_PCB_xtractHSIO.py](/examples/Olympus/Script/Olympus_PCB_xtractHSIO.py) |
+| DCR        | [Sigrity_DCR](/examples/Olympus/Sim_Input/Sigrity_DCR)   | [Olympus_PCB_xtractDCR.py](/examples/Olympus/Script/Olympus_PCB_xtractDCR.py)  |
 
-## Run the Main Function
+## 6. Run the main function
 
-Use the PDN extraction test case as an example here.
+The PDN extraction test case is used as the example here.
 
-Find the main function python file under "xxx/SIPIProj/Olympus/Script/Olympus_PCB_xtractPDN.py". Before running Olympus_PCB_xtractPDN.py, make sure your input information is correct. The contents of Olympus_PCB_xtractPDN.py is shown below. Make sure config_dir, input_type, input_folder all specified correctly.
+### 6.1 Check the main function
+
+Find the main function at `xxx/SIPIProj/Olympus/Script/Olympus_PCB_xtractPDN.py`. Before
+running it, make sure your input information is correct — in particular that `input_dir`,
+`input_type`, and `input_folder` are all specified correctly.
 
 ```python
 from opensipi.integrated_flows import sim2report
@@ -102,27 +151,34 @@ mntr_info = {
 sim2report(input_info, mntr_info)
 ```
 
-Open a command window in the folder "Script" and launch Olympus_PCB_xtractPDN.py.
+### 6.2 Launch it
+
+Open a command window in the folder `Script` and launch the script.
 
 ```shell
 python Olympus_PCB_xtractPDN.py
 ```
 
-You'll be asked to drop a design file to the specified directory.
+### 6.3 Drop the design file
+
+You'll be asked to drop a design file into the specified directory.
 
 ```log
 [2024-01-09 10:47:53,437] - [opensipi.sipi_infra] - opensipi version: 0.1.0
 [2024-01-09 10:47:53,437] - [opensipi.sipi_infra] - Log file for Run_20240109_104753 is created.
 [2024-01-09 10:47:53,437] - [opensipi.sipi_infra] - Please put the design file to be simulated in the following directory:
-C:\SIPIProj\Olympus\Dsn\
+xxx/SIPIProj/Olympus/Dsn/
 Has the board been put in the directory? [y/n]
 ```
 
-A Dsn folder has been created under Olympus. Drop the brd file there. Type "y" in the command window and press Enter.
+A `Dsn` folder has been created under `Olympus`. Drop the `.brd` file there, then type
+`y` in the command window and press <kbd>Enter</kbd>.
 
 ![image](/docs/Figures/drop_a_design.png)
 
-Check the logs, you'll see initial check completes successfully.
+### 6.4 Initial check
+
+Check the logs — you'll see the initial check complete successfully.
 
 ```log
 [2024-01-09 11:00:42,967] - [opensipi.sipi_infra./opensipi.sigrity_exec] - Initial check starts.
@@ -138,7 +194,9 @@ Check the logs, you'll see initial check completes successfully.
 [2024-01-09 11:00:42,975] - [opensipi.sipi_infra./opensipi.sigrity_exec] - Initial check completes successfully.
 ```
 
-You'll also find model check completes successfully.
+### 6.5 Model check
+
+You'll also find that the model check completes successfully.
 
 ```log
 [2024-01-09 11:00:43,045] - [opensipi.sipi_infra./opensipi.sigrity_exec] - Check is running for SIM1_P0V9 ...
@@ -153,13 +211,17 @@ You'll also find model check completes successfully.
 [2024-01-09 11:00:57,180] - [opensipi.sipi_infra./opensipi.sigrity_exec] - Cap models are checked. All uses SPICE type models!
 ```
 
-Because 'op_pause_after_model_check' in 'mntr_info' was set to '1', the application pauses the flow and prompts the user to decide when to continue with simulations.
+Because `op_pause_after_model_check` in `mntr_info` was set to `1`, the application pauses
+the flow and prompts you to decide when to continue with the simulations.
 
 ```
 Do you want to continue with simulations? [y/n]
 ```
 
-If no changes are needed to the simulation files, type in 'y' and press 'Enter' to continue. You'll see the simulation log shown as below.
+### 6.6 Run the simulations
+
+If no changes are needed to the simulation files, type `y` and press <kbd>Enter</kbd> to
+continue. You'll see the simulation log shown below.
 
 ```log
 [2024-01-09 11:18:18,079] - [opensipi.sipi_infra./opensipi.sigrity_exec] - Sim is running for SIM1_P0V9 ...
@@ -172,16 +234,19 @@ If no changes are needed to the simulation files, type in 'y' and press 'Enter' 
 [2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - Total elapsed time is 0 hours, 8 mins, and 2 secs!
 ```
 
-Once simulations are done, results like snp files and DCR csv files are copied to the folder Results.
+### 6.7 Collect the results
+
+Once the simulations are done, results such as `.sNp` files and DCR CSV files are copied
+to the folder `Result`.
 
 ```log
-[2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - SIM1_P0V9__20240109_110029_010924_112229_34756_DCfitted.s2p has been copied to C:\SIPIProj\Olympus\Xtract\Run_20240109_110029\Result\SNP_DCfitted\
-[2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - SIM1_P0V9__20240109_110029_010924_112229_34756_S.s2p has been copied to C:\SIPIProj\Olympus\Xtract\Run_20240109_110029\Result\SNP_S\
-[2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - SIM1_P1V8__20240109_110029_010924_112619_34756_DCfitted.s3p has been copied to C:\SIPIProj\Olympus\Xtract\Run_20240109_110029\Result\SNP_DCfitted\
-[2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - SIM1_P1V8__20240109_110029_010924_112619_34756_S.s3p has been copied to C:\SIPIProj\Olympus\Xtract\Run_20240109_110029\Result\SNP_S\
+[2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - SIM1_P0V9__20240109_110029_010924_112229_34756_DCfitted.s2p has been copied to xxx/SIPIProj/Olympus/Xtract/Run_20240109_110029/Result/SNP_DCfitted/
+[2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - SIM1_P0V9__20240109_110029_010924_112229_34756_S.s2p has been copied to xxx/SIPIProj/Olympus/Xtract/Run_20240109_110029/Result/SNP_S/
+[2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - SIM1_P1V8__20240109_110029_010924_112619_34756_DCfitted.s3p has been copied to xxx/SIPIProj/Olympus/Xtract/Run_20240109_110029/Result/SNP_DCfitted/
+[2024-01-09 11:26:20,454] - [opensipi.sipi_infra./opensipi.sigrity_exec] - SIM1_P1V8__20240109_110029_010924_112619_34756_S.s3p has been copied to xxx/SIPIProj/Olympus/Xtract/Run_20240109_110029/Result/SNP_S/
 ```
 
-Figures and a report is created subsequently.
+Figures and a report are created subsequently.
 
 ```log
 [2024-01-09 11:26:20,481] - [opensipi.sipi_infra] - SIM1_P0V9__20240109_110029_010924_112229_34756_DCfitted.s2p is included for plotting!
@@ -189,3 +254,10 @@ Figures and a report is created subsequently.
 [2024-01-09 11:26:22,025] - [opensipi.sipi_infra] - SIM1_P0V9__20240109_110029_010924_112229_34756_S.s2p is included for plotting!
 [2024-01-09 11:26:22,025] - [opensipi.sipi_infra] - SIM1_P1V8__20240109_110029_010924_112619_34756_S.s3p is included for plotting!
 ```
+
+## Next Steps
+
+- Adapt the input tables to your own design — see
+  [Front-end Files IO](/docs/Home/Front-end-Files-IO.md).
+- Understand what the platform creates on disk and when — see
+  [Mid-layer Platform](/docs/Home/Mid-layer-Platform.md).

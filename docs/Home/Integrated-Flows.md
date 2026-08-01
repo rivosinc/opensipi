@@ -5,32 +5,54 @@ SPDX-FileCopyrightText: 2024 Rivos Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
+[← Documentation Home](/docs/Home.md) · [User Manual](/docs/Home/User-Manual.md)
+
 # Integrated Flows
 
-## sim2report(input_info, mntr_info)
+Top-level entry points, defined in `opensipi.integrated_flows`. Each one runs an
+extraction from input tables all the way to a report.
 
-**Usage**:
+| Function                                          | Input source  | Output destination      |
+| ------------------------------------------------- | ------------- | ----------------------- |
+| [`sim2report`](#sim2reportinput_info-mntr_info)   | CSV files     | Local run folder        |
+| `sim2report_gsuites`                              | Google Sheet  | Local folder + Google Drive |
 
-This function takes csv input info to the Platform, parses them into scripts to automate S-para extraction, processes results and generates a report.
+---
 
-**Inputs**:
-- **input_info**: dict, input related information
+## `sim2report(input_info, mntr_info)`
 
-	**_input_type_**: str, input file type. "csv" or "gsheet".
+### Usage
 
-	**_input_dir_**: str, directory of input csv files. This key is mandatory if *input_type* = "csv".
+This function takes CSV input info to the platform, parses it into scripts to automate
+S-para extraction, processes the results, and generates a report.
 
-	**_input_folder_**: str, folder name of the input csv files, the specified folder contains the required input info for a specific extraction type like PDN, LSIO, HSIO etc. This key is mandatory if *input_type* = "csv".
+```python
+from opensipi.integrated_flows import sim2report
+```
 
-	**_op_run_name_**: \[optional\], str, the time stamp of the "Run" folder. It should be omitted or assigned empty string by default. Each time an extraction starts, a folder called "Run_(time stamp)" is created automatically. In order to hack into an existing Run folder, set the existing time stamp to this key.
+### Inputs
 
-- **mntr_info**: dict, monitor related information
+#### `input_info` — dict, input related information
 
-	**_email_**: str, email address to receive notifications. NOT ENABLED YET!
+| Key             | Type | Required                        | Description                                                                                                                                                                                   |
+| --------------- | ---- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `input_type`    | str  | Yes                             | Input file type — `"csv"` or `"gsheet"`.                                                                                                                                                      |
+| `input_dir`     | str  | Yes, if `input_type` is `"csv"` | Directory of the input CSV files.                                                                                                                                                             |
+| `input_folder`  | str  | Yes, if `input_type` is `"csv"` | Folder name of the input CSV files. The specified folder contains the required input info for a specific extraction type such as PDN, LSIO, or HSIO.                                          |
+| `op_run_name`   | str  | Optional                        | The time stamp of the `Run` folder. Omit it or pass an empty string by default — a folder `Run_(time stamp)` is then created automatically. To hack into an existing `Run` folder, pass that folder's existing time stamp. |
 
-	**_op_pause_after_model_check_**: int, 1-> flow pauses after model check is done, 0-> flow doesn't pause. If the key is omitted, 0 is applied by default.
+#### `mntr_info` — dict, monitor related information
 
-**Example**:
+| Key                          | Type | Required | Description                                                                                       |
+| ---------------------------- | ---- | -------- | ------------------------------------------------------------------------------------------------- |
+| `email`                      | str  | —        | Email address to receive notifications. **NOT ENABLED YET!**                                      |
+| `op_pause_after_model_check` | int  | Optional | `1` — the flow pauses after model check is done. `0` — it doesn't. Defaults to `0` if omitted.    |
+
+### Output
+
+**`report_dir`** — str, the full path to the generated report.
+
+### Example
 
 ```python
 input_info = {
@@ -45,5 +67,40 @@ mntr_info = {
     "op_pause_after_model_check": 1,
 }
 
-sim2report(input_info, mntr_info)
+report_dir = sim2report(input_info, mntr_info)
 ```
+
+---
+
+## `sim2report_gsuites(input_info, mntr_info)`
+
+### Usage
+
+The Google Suites counterpart of `sim2report`. It reads the simulation input from a
+Google Sheet, runs the same extraction and reporting flow, and then uploads the results to
+Google Drive.
+
+```python
+from opensipi.integrated_flows import sim2report_gsuites
+```
+
+### Inputs
+
+`mntr_info` is identical to `sim2report`. `input_info` differs as follows.
+
+| Key            | Type | Required | Description                                                                            |
+| -------------- | ---- | -------- | ---------------------------------------------------------------------------------------- |
+| `input_type`   | str  | Yes      | Must be `"gsheet"`.                                                                    |
+| `input_url`    | str  | Yes      | URL of the Google Sheet holding the input tabs.                                        |
+| `proj_dir`     | str  | Yes      | The project directory, e.g. `.../SIPIProj/Olympus/`. There is no `input_dir` to derive it from. |
+| `output_type`  | str  | Optional | `"gdrive"` to upload the results to Google Drive. Defaults to `"local"`.               |
+| `op_run_name`  | str  | Optional | Same meaning as for `sim2report`.                                                      |
+
+The Google account credentials and target Drive IDs are **not** passed here — they are
+read from `config_gsuites.yaml` in the `opensipi_config` folder. See
+[Installation and Configuration](/docs/Home/Installation-and-Configuration.md).
+
+### Output
+
+None. The report is written to the run folder and, when `output_type` is `"gdrive"`,
+uploaded to Google Drive.
